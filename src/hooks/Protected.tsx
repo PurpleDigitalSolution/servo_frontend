@@ -1,4 +1,4 @@
-import { Navigate, useLocation, Outlet } from "react-router-dom"; // 👈 Add Outlet here
+import { Navigate, useLocation, Outlet } from "react-router-dom"; 
 import { useAuthStore } from "../store/authStore";
 
 type ProtectedProps = {

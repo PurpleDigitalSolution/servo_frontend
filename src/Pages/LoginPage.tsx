@@ -175,9 +175,13 @@ const LoginPage = () => {
                 />
                 Remember me
               </label>
-              <a href="#" className="text-sm text-primary hover:text-primary-hover">
+              <button
+                type="button"
+                onClick={() => navigate('/auth/forgot-password')}
+                className="text-sm text-primary hover:text-primary-hover"
+              >
                 Forgot password?
-              </a>
+              </button>
             </div>
 
             {/* Submit Button */}

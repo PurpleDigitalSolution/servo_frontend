@@ -16,6 +16,7 @@ const publicRoutes = [
   "/auth/login",
   "/auth/register",
   "/auth/forget-password",
+  "/auth/verify-otp",
   "/auth/reset-password",
 ];
 api.interceptors.request.use((config) => {
