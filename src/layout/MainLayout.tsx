@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Menu, X } from "lucide-react";
 import SideBar from "../components/SideBar";
 import { useAuthStore } from "../store/authStore";
+import ThemeToggle from "../util/Theme";
 // import ThemeToggle from "../util/Theme";
 
 const MainLayout = ({ children }: { children: React.ReactNode }) => {
@@ -81,12 +82,12 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
               )}
 
               <h1 className="text-lg md:text-xl font-semibold text-text-primary">
-                {user?.role === "ADMIN" ? "Admin Dashboard" : "Staff Dashboard"}
+                {user?.role === "ADMIN" || user?.role ==="SUPER_ADMIN" ? "Admin Dashboard" : "Staff Dashboard"}
               </h1>
             </div>
 
             <div className="flex items-center gap-3">
-              {/* <ThemeToggle /> */}
+              <ThemeToggle />
 
               {/* User Menu */}
               <div className="flex items-center gap-2 md:gap-3">

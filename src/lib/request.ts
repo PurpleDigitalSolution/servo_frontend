@@ -2,7 +2,7 @@ import { type AxiosResponse } from "axios";
 import toast from "react-hot-toast";
 import type { User } from "../interface/user.interface";
 
-type ApiResponse<T = unknown> = {
+type ApiResponse<T = any> = {
   user: User | null;
   success: boolean;
   message?: string;
