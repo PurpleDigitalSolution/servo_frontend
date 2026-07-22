@@ -7,4 +7,5 @@ export type OrderStatus =
   | "CANCELLED"
   | "ASSIGNED"
   | "ARRIVED"
-  | "IN_TRANSIT";
+  | "IN_TRANSIT"
+  | "PROCESSING";

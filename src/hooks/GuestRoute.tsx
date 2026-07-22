@@ -1,15 +1,13 @@
 import React from "react";
-
 import { Navigate, useLocation } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
 
 const GuestRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, authenticating } = useAuthStore();
+  const { user, isCheckingAuth, mustChangePassword } = useAuthStore();
   const location = useLocation();
 
-  // Show loading state
-  if (authenticating) {
+  if (isCheckingAuth) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background to-surface-secondary flex items-center justify-center">
         <div className="text-center">
@@ -22,32 +20,33 @@ const GuestRoute = ({ children }: { children: React.ReactNode }) => {
       </div>
     );
   }
-
-  // Redirect authenticated users to appropriate dashboard
+if(mustChangePassword && !location.pathname.includes("/auth/change-password")) {
+    return <Navigate to="/auth/change-password" replace />;
+  }
   if (user) {
-    const from = location.state?.from?.pathname;
-    let dashboardRoute = "/dashboard";
+    // 1. Safely extract location state route
+    const statePathname = location.state?.from?.pathname;
+    const validStatePath =
+      typeof statePathname === "string" && statePathname.startsWith("/")
+        ? statePathname
+        : null;
 
-    if (user.role === "ADMIN") {
-      dashboardRoute = "/admin/dashboard";
+    // 2. Read and clear sessionStorage redirect
+    const savedRedirect = sessionStorage.getItem("redirect_to");
+    if (savedRedirect) {
+      sessionStorage.removeItem("redirect_to");
     }
 
-    // Use the original intended route or fallback to dashboard
-    const targetRoute = from || dashboardRoute;
+    // 3. Role-based fallback route
+    const defaultDashboard =
+      user.role === "ADMIN" || user.role === "SUPER_ADMIN" ? "/dashboard" : "/dashboard";
 
-    return (
-      <Navigate
-        to={targetRoute}
-        replace
-        state={{
-          from: location,
-          message: `Welcome back! Redirecting to your dashboard`,
-        }}
-      />
-    );
+    // 4. Fallback hierarchy: statePath -> savedRedirect -> defaultDashboard
+    const targetRoute = validStatePath || savedRedirect || defaultDashboard;
+
+    return <Navigate to={targetRoute} replace />;
   }
 
-  // Render children for guest users
   return <>{children}</>;
 };
 

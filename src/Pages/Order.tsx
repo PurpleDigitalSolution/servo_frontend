@@ -61,9 +61,9 @@ const Order = () => {
           order.id?.toLowerCase().includes(term) ||
           order.fuelType?.toLowerCase().includes(term) ||
           order.deliveryAddress?.toLowerCase().includes(term) ||
-          order.user?.userProfile?.firstName?.toLowerCase().includes(term) ||
-          order.user?.userProfile?.lastName?.toLowerCase().includes(term) ||
-          order.user?.email?.toLowerCase().includes(term) ||
+          order.customer?.userProfile?.firstName?.toLowerCase().includes(term) ||
+          order.customer?.userProfile?.lastName?.toLowerCase().includes(term) ||
+          order.customer?.email?.toLowerCase().includes(term) ||
           order.station?.name?.toLowerCase().includes(term)
       );
     }
@@ -329,7 +329,8 @@ const navigate = useNavigate()
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {paginatedOrders.map((order) => (
+                  {paginatedOrders.map((order) => {
+                    return(
                     <tr key={order.id} className="hover:bg-surface-secondary transition-colors">
                       <td className="px-3 py-2 text-[11px] font-medium text-text-primary">
                         <span className="font-mono text-[10px]">{order.id.slice(0, 8)}...</span>
@@ -339,11 +340,9 @@ const navigate = useNavigate()
 
                           <div>
                             <p className="text-[11px] font-medium text-text-primary leading-tight">
-                              {order.user?.userProfile?.firstName} {order.user?.userProfile?.lastName}
+                              {order.customer?.userProfile?.firstName} {order.customer?.userProfile?.lastName}
                             </p>
-                            <p className="text-[10px] text-text-secondary leading-tight">
-                              {order.user?.email}
-                            </p>
+                          
                           </div>
                         </div>
                       </td>
@@ -359,7 +358,7 @@ const navigate = useNavigate()
                         {order.quantity}L
                       </td>
                       <td className="px-3 py-2 text-[11px] font-medium text-text-primary">
-                        {formatCurrency(order.price)}
+                        {formatCurrency(order.totalAmount)}
                       </td>
                       <td className="px-3 py-2">
                         <span
@@ -385,7 +384,7 @@ const navigate = useNavigate()
                       <td className="px-3 py-2">
                         <button
                         onClick={()=>{
-                          navigate(`/order/${order.id}`)
+                          navigate(`/orders/${order.id}`)
                         }}
                           className="p-1 hover:bg-surface-secondary rounded-lg transition-colors text-text-secondary hover:text-primary"
                           title="View Order"
@@ -394,7 +393,7 @@ const navigate = useNavigate()
                         </button>
                       </td>
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </table>
             </div>

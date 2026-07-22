@@ -22,11 +22,17 @@ import Customers from "./Pages/Customers";
 import CustomerPage from "./Pages/CustomerPage";
 import UnderConstruction from "./Pages/UnderConstruction";
 import OrderDetails from "./Pages/OrderDetails";
+import AgentPage from "./Pages/AgentPage";
+import Transactions from "./Pages/Transactions";
+import ChangePassword from "./Pages/ChangePassword";
+import PrivacyPolicy from "./Pages/PrivacyPolicy";
 
-function App() {
   const router = createBrowserRouter(
     createRoutesFromElements(
       <Route path="/" element={<Layout />}>
+        <Route path='privacy-policy' element={
+          <PrivacyPolicy/>
+        }/>
          <Route path='auth/forgot-password' element={
          <GuestRoute>
            <ForgetPassword/>
@@ -43,6 +49,13 @@ function App() {
            <ResetPassword/>
          </GuestRoute>
         }/>
+
+        <Route path='auth/change-password' element={
+         <GuestRoute>
+           <ChangePassword/>
+         </GuestRoute>
+        }/>
+
         <Route
           index
           element={
@@ -83,14 +96,7 @@ function App() {
             </Protected>
           }
         />
-        <Route
-          path="orders/:orderId"
-          element={
-            <Protected>
-              <Order />
-            </Protected>
-          }
-        />
+
         <Route
           path="orders"
           element={
@@ -100,10 +106,19 @@ function App() {
           }
         />
         <Route
-          path="order/:orderId"
+          path="orders/:orderId"
           element={
             <Protected>
               <OrderDetails
+               />
+            </Protected>
+          }
+        />
+        <Route
+          path="orders/:orderId/transactions"
+          element={
+            <Protected>
+              <Transactions
                />
             </Protected>
           }
@@ -128,7 +143,7 @@ function App() {
           path="agents"
           element={
             <Protected>
-              <UnderConstruction />
+              <AgentPage />
             </Protected>
           }
         />
@@ -184,6 +199,9 @@ function App() {
       </Route>,
     ),
   );
+
+function App() {
+
   return (
     <>
       <Toaster

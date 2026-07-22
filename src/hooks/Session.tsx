@@ -8,7 +8,6 @@ const SessionChecker = () => {
   const isCheckingRef = React.useRef<boolean>(false);
   const { checkAuthentication } = useAuthStore();
   useEffect(() => {
-
     let isMounted = true;
 
     const performSessionCheck = async (force = false) => {

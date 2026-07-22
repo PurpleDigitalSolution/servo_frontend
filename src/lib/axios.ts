@@ -12,6 +12,7 @@ api.defaults.withCredentials = true;
 
 const publicRoutes = [
   "/",
+  "/privacy-policy",
   "/result-checker",
   "/auth/login",
   "/auth/register",
@@ -46,11 +47,16 @@ api.interceptors.response.use(
     }
 
     // Forbidden
-    if (status === 403) {
+    if (status === 401) {
       useAuthStore.getState().reset();
       if (!publicRoutes.includes(currentPath)) {
         window.location.href = "/auth/login";
       }
+      toast.error(
+        message || "You don't have permission to perform this action.",
+      );
+    }
+    if( status === 403) {
       toast.error(
         message || "You don't have permission to perform this action.",
       );

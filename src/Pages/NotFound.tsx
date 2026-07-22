@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
 import { Home, AlertCircle } from 'lucide-react';
+import { useAuthStore } from '../store/authStore';
 
 const NotFound = () => {
+  const {user} = useAuthStore();
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4">
       <div className="text-center max-w-md">
@@ -26,7 +28,7 @@ const NotFound = () => {
 
         {/* Home Button */}
         <Link
-          to="/dashboard"
+          to={user?.role === "ADMIN" || user?.role === "SUPER_ADMIN" ? "/dashboard" : "/dashboard"}
           className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors font-medium"
         >
           <Home size={18} />

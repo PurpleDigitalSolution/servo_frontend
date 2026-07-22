@@ -8,7 +8,6 @@ import {
   Settings,
   Truck,
   User,
-  UserLock,
   Users,
   UserStar,
   ChevronDown,
@@ -38,7 +37,7 @@ interface SideBarProps {
   onClose?: () => void;
 }
 
-const SuperAdminSidebar = ({
+const AdminSidebar = ({
   isCollapsed = false,
   onToggleCollapse,
   isMobile = false,
@@ -78,7 +77,6 @@ const SuperAdminSidebar = ({
           icon: <Users size={18} />,
         },
         { name: "Agents", href: "/agents", icon: <UserStar size={18} /> },
-        { name: "Admins", href: "/admins", icon: <UserLock size={18} /> },
         { name: "Drivers", href: "/drivers", icon: <Truck size={18} /> },
       ],
     },
@@ -411,4 +409,4 @@ const SuperAdminSidebar = ({
   );
 };
 
-export default SuperAdminSidebar;
+export default AdminSidebar;

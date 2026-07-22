@@ -3,7 +3,9 @@ import { Menu, X } from "lucide-react";
 import SideBar from "../components/SideBar";
 import { useAuthStore } from "../store/authStore";
 import ThemeToggle from "../util/Theme";
-// import ThemeToggle from "../util/Theme";
+import SuperAdminSidebar from "../components/SideBar";
+import AdminSidebar from "../components/Admin";
+import AgentSidebar from "../components/AgentSidebar";
 
 const MainLayout = ({ children }: { children: React.ReactNode }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -16,25 +18,48 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
 
   // Determine user role for display
   const getUserRole = () => {
-    if (user?.role === "ADMIN" || user?.role === "SUPER_ADMIN") return "Administrator";
+    if (user?.role === "ADMIN" || user?.role === "SUPER_ADMIN")
+      return "Administrator";
     if (user?.role === "STAFF") return "Staff";
     return "User";
   };
-
+  // const role = user?.role || "";
   const getUserInitial = () => {
     const name = user?.userProfile?.firstName || "User";
     return name.charAt(0).toUpperCase();
   };
-
+  const role = user?.role || "";
+  const renderSidebar = () => {
+    switch (role) {
+      case "SUPER_ADMIN":
+        return (
+          <SuperAdminSidebar
+            isCollapsed={isSidebarCollapsed}
+            onToggleCollapse={handleToggleCollapse}
+          />
+        );
+      case "ADMIN":
+        return (
+          <AdminSidebar
+            isCollapsed={isSidebarCollapsed}
+            onToggleCollapse={handleToggleCollapse}
+          />
+        );
+      case "AGENT":
+        return (
+          <AgentSidebar
+            isCollapsed={isSidebarCollapsed}
+            onToggleCollapse={handleToggleCollapse}
+          />
+        );
+      default:
+        return null;
+    }
+  };
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden">
       {/* Desktop Sidebar */}
-      <div className="hidden md:block">
-        <SideBar
-          isCollapsed={isSidebarCollapsed}
-          onToggleCollapse={handleToggleCollapse}
-        />
-      </div>
+      <div className="hidden md:block">{renderSidebar()}</div>
 
       {/* Mobile Sidebar Overlay */}
       {isMobileMenuOpen && (
@@ -82,7 +107,9 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
               )}
 
               <h1 className="text-lg md:text-xl font-semibold text-text-primary">
-                {user?.role === "ADMIN" || user?.role ==="SUPER_ADMIN" ? "Admin Dashboard" : "Staff Dashboard"}
+                {user?.role === "ADMIN" || user?.role === "SUPER_ADMIN"
+                  ? "Admin Dashboard"
+                  : "Staff Dashboard"}
               </h1>
             </div>
 

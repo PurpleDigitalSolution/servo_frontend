@@ -1,16 +1,23 @@
 import type { FuelType, OrderStatus } from "../types/general";
 export interface Order {
   id: string;
-  userId: string;
+  customerId: string;
   stationId: string;
   status: OrderStatus;
   fuelType: FuelType;
   quantity: string;
-  price: string;
+  fuelSubtotal: string;
+  totalAmount: string;
+  unitPrice: string;
+  assignedAgentId:string;
+  completedById:string;
+  cancelledById:string;
   deliveryAddress: string;
+  VAT: string;
+  deliveryFee: string;
   createdAt: string;
   updatedAt: string;
-  user?: User;
+  customer?: User;
   station?: Station;
 }
 
