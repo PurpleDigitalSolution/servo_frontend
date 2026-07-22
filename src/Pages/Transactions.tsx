@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import MainLayout from "../layout/MainLayout";
 import {
@@ -10,14 +10,14 @@ import {
   Calendar,
   Copy,
   Check,
-  Link,
-  Eye,
+  // Eye,
   Download,
   Printer,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
 import Loader from "../components/Loader";
+import { useTransactionStore } from "../store/transactionStore";
 
 interface Transaction {
   id: string;
@@ -36,77 +36,15 @@ interface Transaction {
   updatedAt: string;
 }
 
-// Mock transactions data
-const mockTransactions: Transaction[] = [
-  {
-    id: "844804f3-55f8-424a-8827-88e0100a9b9b",
-    orderId: "b355a51a-28b3-4116-a28a-82ce0d15a23d",
-    amount: "240000",
-    currency: "NGN",
-    paymentMethod: "PAYSTACK",
-    status: "SUCCESS",
-    reference: "TXN_ORD_1784209775524-8ecd59",
-    gatewayReference: "paystack_ref_123456",
-    authorizationUrl: "https://checkout.paystack.com/wjg2avjev2wvf4b",
-    accessCode: "AC123456",
-    paidAt: "2026-07-16T14:30:00.000Z",
-    gatewayResponse: "Payment completed successfully",
-    createdAt: "2026-07-16T13:49:35.526Z",
-    updatedAt: "2026-07-16T14:30:15.000Z",
-  },
-  {
-    id: "9a3c724f-ae4e-4e2f-86a6-f7dc49294db4",
-    orderId: "c355a51a-28b3-4116-a28a-82ce0d15a23d",
-    amount: "150000",
-    currency: "NGN",
-    paymentMethod: "FLUTTERWAVE",
-    status: "PENDING",
-    reference: "TXN_ORD_1784209775524-9abc45",
-    gatewayReference: null,
-    authorizationUrl: "https://checkout.flutterwave.com/pay/abc123",
-    accessCode: null,
-    paidAt: null,
-    gatewayResponse: null,
-    createdAt: "2026-07-15T10:20:00.000Z",
-    updatedAt: "2026-07-15T10:20:00.000Z",
-  },
-  {
-    id: "a4d835f4-66f9-5353-93b7-93e1a26b9c9c",
-    orderId: "d355a51a-28b3-4116-a28a-82ce0d15a23d",
-    amount: "75000",
-    currency: "NGN",
-    paymentMethod: "BANK_TRANSFER",
-    status: "FAILED",
-    reference: "TXN_ORD_1784209775524-7def32",
-    gatewayReference: "bank_ref_789012",
-    authorizationUrl: null,
-    accessCode: null,
-    paidAt: null,
-    gatewayResponse: "Payment failed: Insufficient funds",
-    createdAt: "2026-07-14T08:15:00.000Z",
-    updatedAt: "2026-07-14T08:20:30.000Z",
-  },
-  {
-    id: "b5e946g5-77g0-6464-04c8-04f2b37c0d0d",
-    orderId: "e355a51a-28b3-4116-a28a-82ce0d15a23d",
-    amount: "50000",
-    currency: "NGN",
-    paymentMethod: "PAYSTACK",
-    status: "SUCCESS",
-    reference: "TXN_ORD_1784209775524-5ghi67",
-    gatewayReference: "paystack_ref_345678",
-    authorizationUrl: "https://checkout.paystack.com/xyz789",
-    accessCode: "AC789012",
-    paidAt: "2026-07-13T16:45:00.000Z",
-    gatewayResponse: "Payment completed successfully",
-    createdAt: "2026-07-13T16:30:00.000Z",
-    updatedAt: "2026-07-13T16:45:30.000Z",
-  },
-];
-
 const Transactions = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
+  const {
+    getOrderTransaction,
+    transactions,
+    loading: storeLoading,
+    error: storeError,
+  } = useTransactionStore();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>("all");
@@ -116,36 +54,47 @@ const Transactions = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [copied, setCopied] = useState<string | null>(null);
 
-  // Simulate loading
+  // Fetch transactions
   useEffect(() => {
     const fetchTransactions = async () => {
+      if (!orderId) {
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
+      setError(null);
       try {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        // Mock data is already loaded
+        const response = await getOrderTransaction(orderId);
+        if (!response?.success) {
+          setError(response?.message || "Failed to fetch transactions");
+        }
       } catch (err) {
         setError("Failed to fetch transactions");
+        console.error("Error fetching transactions:", err);
       } finally {
         setLoading(false);
       }
     };
+
     fetchTransactions();
-  }, []);
+  }, [orderId, getOrderTransaction]);
+
+  // Get transactions from store - handle both array and single object
+  const transactionData = transactions || [];
+
+  // Ensure transactionData is always an array
+  const transactionList = Array.isArray(transactionData) ? transactionData : [];
 
   // Filter transactions
   const filteredTransactions = useMemo(() => {
-    let result = mockTransactions;
-
-    // Filter by orderId if provided
-    if (orderId) {
-      result = result.filter((t) => t.orderId === orderId);
-    }
+    let result = transactionList;
 
     // Apply search filter
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase().trim();
       result = result.filter(
-        (t) =>
+        (t: Transaction) =>
           t.reference?.toLowerCase().includes(term) ||
           t.id?.toLowerCase().includes(term) ||
           t.orderId?.toLowerCase().includes(term) ||
@@ -156,16 +105,16 @@ const Transactions = () => {
 
     // Apply status filter
     if (statusFilter !== "all") {
-      result = result.filter((t) => t.status === statusFilter);
+      result = result.filter((t: Transaction) => t.status === statusFilter);
     }
 
     // Apply payment method filter
     if (paymentMethodFilter !== "all") {
-      result = result.filter((t) => t.paymentMethod === paymentMethodFilter);
+      result = result.filter((t: Transaction) => t.paymentMethod === paymentMethodFilter);
     }
 
     return result;
-  }, [mockTransactions, searchTerm, statusFilter, paymentMethodFilter, orderId]);
+  }, [transactionList, searchTerm, statusFilter, paymentMethodFilter]);
 
   // Pagination
   const paginatedTransactions = useMemo(() => {
@@ -179,7 +128,9 @@ const Transactions = () => {
 
   // Reset to first page when filters change
   useEffect(() => {
-    setCurrentPage(1);
+    setTimeout(()=>{
+      setCurrentPage(1);
+    },0)
   }, [searchTerm, statusFilter, paymentMethodFilter, itemsPerPage]);
 
   const handlePageChange = (page: number) => {
@@ -194,11 +145,17 @@ const Transactions = () => {
   };
 
   const handleRefresh = async () => {
+    if (!orderId) return;
     setLoading(true);
+    setError(null);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const response = await getOrderTransaction(orderId);
+      if (!response?.success) {
+        setError(response?.message || "Failed to refresh transactions");
+      }
     } catch (err) {
       setError("Failed to refresh transactions");
+      console.error("Error refreshing transactions:", err);
     } finally {
       setLoading(false);
     }
@@ -284,11 +241,58 @@ const Transactions = () => {
     { value: 50, label: "50 per page" },
   ];
 
-  if (loading) {
+  // Show loading state
+  if (loading || storeLoading) {
     return (
       <MainLayout>
         <div className="p-6">
           <Loader />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  // Show error state
+  const displayError = error || storeError;
+  if (displayError) {
+    return (
+      <MainLayout>
+        <div className="p-6">
+          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <div className="flex items-center space-x-2 text-red-700 dark:text-red-400">
+              <AlertCircle size={20} />
+              <span>{displayError}</span>
+            </div>
+            <button
+              onClick={handleRefresh}
+              className="mt-2 text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 underline"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  // Show no transactions message when no orderId
+  if (!orderId) {
+    return (
+      <MainLayout>
+        <div className="p-6">
+          <div className="text-center py-12 bg-surface rounded-lg border border-border">
+            <CreditCard className="w-12 h-12 text-text-secondary mx-auto mb-3" />
+            <div className="text-text-secondary mb-2">No Order Selected</div>
+            <div className="text-sm text-text-secondary mb-4">
+              Please select an order to view its transactions.
+            </div>
+            <button
+              onClick={() => navigate("/orders")}
+              className="text-primary hover:text-primary-hover text-sm font-medium"
+            >
+              Go to Orders
+            </button>
+          </div>
         </div>
       </MainLayout>
     );
@@ -301,22 +305,18 @@ const Transactions = () => {
         <div className="mb-6">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center space-x-4">
-              {orderId && (
-                <button
-                  onClick={() => navigate(`/orders/${orderId}`)}
-                  className="p-2 hover:bg-surface-secondary rounded-lg transition-colors text-text-secondary hover:text-text-primary"
-                >
-                  <ArrowLeft size={20} />
-                </button>
-              )}
+              <button
+                onClick={() => navigate(`/orders/${orderId}`)}
+                className="p-2 hover:bg-surface-secondary rounded-lg transition-colors text-text-secondary hover:text-text-primary"
+              >
+                <ArrowLeft size={20} />
+              </button>
               <div>
                 <h1 className="text-2xl font-bold text-text-primary">
-                  {orderId ? "Order Transactions" : "Transactions"}
+                  Order Transactions
                 </h1>
                 <p className="text-text-secondary mt-1">
-                  {orderId
-                    ? `Transactions for order #${orderId.slice(0, 8)}`
-                    : "View all payment transactions"}
+                  Transactions for order #{orderId.slice(0, 8)}
                 </p>
               </div>
             </div>
@@ -326,7 +326,10 @@ const Transactions = () => {
                 disabled={loading}
                 className="flex items-center space-x-2 bg-surface border border-border text-text-secondary px-4 py-2 rounded-lg hover:bg-surface-secondary transition-colors disabled:opacity-50"
               >
-                <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
+                <RefreshCw
+                  size={18}
+                  className={loading ? "animate-spin" : ""}
+                />
                 <span>{loading ? "Refreshing..." : "Refresh"}</span>
               </button>
               <button className="flex items-center space-x-2 bg-surface border border-border text-text-secondary px-4 py-2 rounded-lg hover:bg-surface-secondary transition-colors">
@@ -341,46 +344,30 @@ const Transactions = () => {
           </div>
         </div>
 
-        {/* Error Display */}
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-            <div className="flex items-center space-x-2 text-red-700 dark:text-red-400">
-              <AlertCircle size={20} />
-              <span>{error}</span>
-            </div>
-            <button
-              onClick={handleRefresh}
-              className="mt-2 text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 underline"
-            >
-              Retry
-            </button>
-          </div>
-        )}
-
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="bg-surface p-4 rounded-lg border border-border">
             <p className="text-xs text-text-secondary">Total Transactions</p>
             <p className="text-2xl font-bold text-text-primary">
-              {mockTransactions.length}
+              {transactionList.length}
             </p>
           </div>
           <div className="bg-surface p-4 rounded-lg border border-border">
             <p className="text-xs text-text-secondary">Successful</p>
             <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-              {mockTransactions.filter((t) => t.status === "SUCCESS").length}
+              {transactionList.filter((t: Transaction) => t.status === "SUCCESS").length}
             </p>
           </div>
           <div className="bg-surface p-4 rounded-lg border border-border">
             <p className="text-xs text-text-secondary">Pending</p>
             <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-              {mockTransactions.filter((t) => t.status === "PENDING").length}
+              {transactionList.filter((t: Transaction) => t.status === "PENDING").length}
             </p>
           </div>
           <div className="bg-surface p-4 rounded-lg border border-border">
             <p className="text-xs text-text-secondary">Failed</p>
             <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-              {mockTransactions.filter((t) => t.status === "FAILED").length}
+              {transactionList.filter((t: Transaction) => t.status === "FAILED").length}
             </p>
           </div>
         </div>
@@ -429,7 +416,9 @@ const Transactions = () => {
 
               <select
                 value={itemsPerPage}
-                onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                onChange={(e) =>
+                  handleItemsPerPageChange(Number(e.target.value))
+                }
                 className="px-4 py-2 border border-border rounded-lg bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
               >
                 {itemsPerPageOptions.map((option) => (
@@ -480,13 +469,13 @@ const Transactions = () => {
                     <th className="px-3 py-2 text-left text-[10px] font-medium text-text-secondary uppercase tracking-wider">
                       Created
                     </th>
-                    <th className="px-3 py-2 text-left text-[10px] font-medium text-text-secondary uppercase tracking-wider">
+                    {/* <th className="px-3 py-2 text-left text-[10px] font-medium text-text-secondary uppercase tracking-wider">
                       Actions
-                    </th>
+                    </th> */}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {paginatedTransactions.map((transaction) => (
+                  {paginatedTransactions.map((transaction: Transaction) => (
                     <tr
                       key={transaction.id}
                       className="hover:bg-surface-secondary transition-colors"
@@ -497,7 +486,9 @@ const Transactions = () => {
                             {transaction.reference.slice(0, 12)}...
                           </span>
                           <button
-                            onClick={() => copyToClipboard(transaction.reference)}
+                            onClick={() =>
+                              copyToClipboard(transaction.reference)
+                            }
                             className="p-1 hover:bg-surface-secondary rounded transition-colors"
                           >
                             {copied === transaction.reference ? (
@@ -530,19 +521,24 @@ const Transactions = () => {
                       </td>
                       <td className="px-3 py-2 text-[11px] text-text-secondary">
                         <div className="flex items-center space-x-1">
-                          <Calendar size={12} className="text-text-secondary flex-shrink-0" />
+                          <Calendar
+                            size={12}
+                            className="text-text-secondary flex-shrink-0"
+                          />
                           <span>{formatDateTime(transaction.createdAt)}</span>
                         </div>
                       </td>
-                      <td className="px-3 py-2">
+                      {/* <td className="px-3 py-2">
                         <button
-                          onClick={() => navigate(`/transactions/${transaction.id}`)}
+                          onClick={() =>
+                            navigate(`/transactions/${transaction.id}`)
+                          }
                           className="p-1 hover:bg-surface-secondary rounded-lg transition-colors text-text-secondary hover:text-primary"
                           title="View transaction"
                         >
                           <Eye size={14} />
                         </button>
-                      </td>
+                      </td> */}
                     </tr>
                   ))}
                 </tbody>
@@ -553,7 +549,8 @@ const Transactions = () => {
             {totalPages > 1 && (
               <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 border-t border-border gap-4">
                 <div className="text-sm text-text-secondary">
-                  Showing {paginatedTransactions.length} of {totalTransactions} transactions
+                  Showing {paginatedTransactions.length} of {totalTransactions}{" "}
+                  transactions
                 </div>
                 <div className="flex items-center space-x-2">
                   <button
@@ -580,13 +577,19 @@ const Transactions = () => {
         ) : (
           <div className="text-center py-12 bg-surface rounded-lg border border-border">
             <CreditCard className="w-12 h-12 text-text-secondary mx-auto mb-3" />
-            <div className="text-text-secondary mb-2">No transactions found</div>
-            <div className="text-sm text-text-secondary mb-4">
-              {searchTerm || statusFilter !== "all" || paymentMethodFilter !== "all"
-                ? "Try adjusting your search or filter criteria"
-                : "No transactions available."}
+            <div className="text-text-secondary mb-2">
+              No transactions found
             </div>
-            {(searchTerm || statusFilter !== "all" || paymentMethodFilter !== "all") && (
+            <div className="text-sm text-text-secondary mb-4">
+              {searchTerm ||
+              statusFilter !== "all" ||
+              paymentMethodFilter !== "all"
+                ? "Try adjusting your search or filter criteria"
+                : "No transactions available for this order."}
+            </div>
+            {(searchTerm ||
+              statusFilter !== "all" ||
+              paymentMethodFilter !== "all") && (
               <button
                 onClick={clearFilters}
                 className="text-primary hover:text-primary-hover text-sm font-medium"
