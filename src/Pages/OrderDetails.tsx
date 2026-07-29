@@ -24,6 +24,7 @@ import {
   ShoppingCart,
   Loader2,
   CreditCard,
+  Flag,
 } from "lucide-react";
 import Loader from "../components/Loader";
 import { useTransactionStore } from "../store/transactionStore";
@@ -56,11 +57,9 @@ const OrderDetails = () => {
     if (!order) return;
     setIsUpdating(true);
     try {
-      // Simulate payment verification
       const res = await verifyTransaction(orderId!);
 
       if (res.status) {
-        // Update order status to CONFIRMED after payment verification
         const result = await updateOrderStatus(orderId!, "PENDING_CONFIRMATION");
         if (result) {
           setOrder(result);
@@ -68,6 +67,36 @@ const OrderDetails = () => {
       }
     } catch (err) {
       console.error("Error verifying payment:", err);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleMarkAsInTransit = async () => {
+    if (!order) return;
+    setIsUpdating(true);
+    try {
+      const result = await updateOrderStatus(orderId!, "IN_TRANSIT");
+      if (result) {
+        setOrder(result);
+      }
+    } catch (err) {
+      console.error("Error marking order as in transit:", err);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleMarkAsCompleted = async () => {
+    if (!order) return;
+    setIsUpdating(true);
+    try {
+      const result = await updateOrderStatus(orderId!, "COMPLETED");
+      if (result) {
+        setOrder(result);
+      }
+    } catch (err) {
+      console.error("Error marking order as completed:", err);
     } finally {
       setIsUpdating(false);
     }
@@ -108,7 +137,7 @@ const OrderDetails = () => {
       DELIVERED:
         "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
       COMPLETED:
-        "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+        "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
       CANCELLED: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
     };
     return (
@@ -124,7 +153,7 @@ const OrderDetails = () => {
       PROCESSING: <Package size={16} />,
       IN_TRANSIT: <Truck size={16} />,
       DELIVERED: <CheckCircle size={16} />,
-      COMPLETED: <CheckCircle size={16} />,
+      COMPLETED: <Flag size={16} />,
       CANCELLED: <XCircle size={16} />,
     };
     return icons[status] || <AlertCircle size={16} />;
@@ -251,6 +280,34 @@ const OrderDetails = () => {
                     )}
                     <span>Start Processing Order</span>
                   </span>
+                </button>
+              )}
+              {order.status === "PROCESSING" && (
+                <button
+                  onClick={handleMarkAsInTransit}
+                  disabled={isUpdating}
+                  className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {isUpdating ? (
+                    <Loader2 className="animate-spin h-4 w-4" />
+                  ) : (
+                    <Truck size={18} />
+                  )}
+                  <span>{isUpdating ? "Updating..." : "Mark as In Transit"}</span>
+                </button>
+              )}
+              {order.status === "IN_TRANSIT" && (
+                <button
+                  onClick={handleMarkAsCompleted}
+                  disabled={isUpdating}
+                  className="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {isUpdating ? (
+                    <Loader2 className="animate-spin h-4 w-4" />
+                  ) : (
+                    <Flag size={18} />
+                  )}
+                  <span>{isUpdating ? "Updating..." : "Mark as Completed"}</span>
                 </button>
               )}
               <button className="flex items-center space-x-2 bg-surface border border-border text-text-secondary px-4 py-2 rounded-lg hover:bg-surface-secondary transition-colors">
@@ -487,7 +544,7 @@ const OrderDetails = () => {
                     </p>
                   </div>
                 </div>
-                {order.status === "CONFIRMED" && (
+                {(order.status === "CONFIRMED" || order.status === "PROCESSING" || order.status === "IN_TRANSIT" || order.status === "COMPLETED") && (
                   <div className="flex items-start space-x-3">
                     <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
                       <CheckCircle
@@ -505,7 +562,7 @@ const OrderDetails = () => {
                     </div>
                   </div>
                 )}
-                {order.status === "PROCESSING" && (
+                {(order.status === "PROCESSING" || order.status === "IN_TRANSIT" || order.status === "COMPLETED") && (
                   <div className="flex items-start space-x-3">
                     <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
                       <Package
@@ -523,7 +580,7 @@ const OrderDetails = () => {
                     </div>
                   </div>
                 )}
-                {order.status === "IN_TRANSIT" && (
+                {(order.status === "IN_TRANSIT" || order.status === "COMPLETED") && (
                   <div className="flex items-start space-x-3">
                     <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
                       <Truck
@@ -543,10 +600,10 @@ const OrderDetails = () => {
                 )}
                 {order.status === "COMPLETED" && (
                   <div className="flex items-start space-x-3">
-                    <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
-                      <CheckCircle
+                    <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0">
+                      <Flag
                         size={16}
-                        className="text-green-600 dark:text-green-400"
+                        className="text-emerald-600 dark:text-emerald-400"
                       />
                     </div>
                     <div>
@@ -609,18 +666,39 @@ const OrderDetails = () => {
                   </>
                 )}
                 {order.status === "CONFIRMED" && (
-                  <button className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:bg-surface-secondary rounded-lg transition-colors">
+                  <button
+                    onClick={() => handleUpdateStatus("PROCESSING")}
+                    className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:bg-surface-secondary rounded-lg transition-colors"
+                  >
                     Mark as Processing
                   </button>
                 )}
                 {order.status === "PROCESSING" && (
-                  <button className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:bg-surface-secondary rounded-lg transition-colors">
-                    Mark as In Transit
+                  <button
+                    onClick={handleMarkAsInTransit}
+                    disabled={isUpdating}
+                    className="w-full text-left px-3 py-2 text-sm bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 rounded-lg transition-colors flex items-center space-x-2"
+                  >
+                    {isUpdating ? (
+                      <Loader2 className="animate-spin h-4 w-4" />
+                    ) : (
+                      <Truck size={16} />
+                    )}
+                    <span>{isUpdating ? "Updating..." : "Mark as In Transit"}</span>
                   </button>
                 )}
                 {order.status === "IN_TRANSIT" && (
-                  <button className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:bg-surface-secondary rounded-lg transition-colors">
-                    Mark as Completed
+                  <button
+                    onClick={handleMarkAsCompleted}
+                    disabled={isUpdating}
+                    className="w-full text-left px-3 py-2 text-sm bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 rounded-lg transition-colors flex items-center space-x-2"
+                  >
+                    {isUpdating ? (
+                      <Loader2 className="animate-spin h-4 w-4" />
+                    ) : (
+                      <Flag size={16} />
+                    )}
+                    <span>{isUpdating ? "Updating..." : "Mark as Completed"}</span>
                   </button>
                 )}
                 {order.status !== "CANCELLED" &&
