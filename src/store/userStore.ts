@@ -56,6 +56,7 @@ const initialState: userState = {
 export const useUserStore = create<UserStateAction & userState>((set, get) => ({
   ...initialState,
   getCustomers: async (page = 1, limit = 10) => {
+    set({ loading: true, error: null });
     return new Promise((resolve) => {
       handleRequest({
         request: () =>
@@ -77,6 +78,7 @@ export const useUserStore = create<UserStateAction & userState>((set, get) => ({
     });
   },
   getAgentRecords: async (page = 1, limit = 10) => {
+    set({ loading: true, error: null });
     return new Promise((resolve) => {
       handleRequest({
         request: () =>
@@ -98,6 +100,7 @@ export const useUserStore = create<UserStateAction & userState>((set, get) => ({
     });
   },
   getCustomerProfile: async (id: string) => {
+    set({ loading: true, error: null });
     return new Promise((resolve) => {
       handleRequest({
         request: () => api.get(`/user-profile/`, { params: { id } }),
@@ -120,6 +123,8 @@ export const useUserStore = create<UserStateAction & userState>((set, get) => ({
     });
   },
   registerAgent: async (agentData) => {
+    set({ loading: true, error: null });
+
     return new Promise((resolve) => {
       handleRequest({
         request: () => api.post("/auth/admin/register", agentData),
