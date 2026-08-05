@@ -15,26 +15,26 @@ interface userState {
     };
   } | null;
   agentRecords: {
-     users: User[];
+    users: User[];
     pagination: {
       totalAgents: number;
       totalPages: number;
       currentPage: number;
     };
-  } | null
+  } | null;
 }
 
 interface ResponseData {
   success: boolean;
   message: string;
   route?: string;
-  data?:any;
+  data?: any;
   errors?: { field: string; message: string }[];
 }
 
 interface UserStateAction {
   getCustomers: (page?: number, limit?: number) => Promise<void>;
-  getCustomerProfile: (id: string) => Promise<ResponseData>
+  getCustomerProfile: (id: string) => Promise<ResponseData>;
   getAgentRecords: (page?: number, limit?: number) => Promise<void>;
   registerAgent: (agentData: {
     email: string;
@@ -67,11 +67,15 @@ export const useUserStore = create<UserStateAction & userState>((set, get) => ({
             },
           }),
         onSuccess: (data) => {
-          set({ records: data.data as userState["records"] });
+          set({
+            records: data.data as userState["records"],
+            loading: false,
+            error: null,
+          });
           resolve();
         },
         onError: (error) => {
-          set({ error: error.response?.data?.message });
+          set({ error: error.response?.data?.message, loading: false });
         },
         showToast: false,
       });
@@ -89,11 +93,15 @@ export const useUserStore = create<UserStateAction & userState>((set, get) => ({
             },
           }),
         onSuccess: (data) => {
-          set({ agentRecords: data.data as userState["agentRecords"] });
+          set({
+            agentRecords: data.data as userState["agentRecords"],
+            loading: false,
+            error: null,
+          });
           resolve();
         },
         onError: (error) => {
-          set({ error: error.response?.data?.message });
+          set({ error: error.response?.data?.message, loading: false });
         },
         showToast: false,
       });
@@ -105,13 +113,17 @@ export const useUserStore = create<UserStateAction & userState>((set, get) => ({
       handleRequest({
         request: () => api.get(`/user-profile/`, { params: { id } }),
         onSuccess: (data) => {
+          set({ loading: false, error: null });
+
           resolve({
-            data:data.data,
+            data: data.data,
             success: true,
             message: "Success",
           });
         },
         onError: (error) => {
+          set({ loading: false, error: null });
+
           resolve({
             success: false,
             message:
@@ -129,6 +141,8 @@ export const useUserStore = create<UserStateAction & userState>((set, get) => ({
       handleRequest({
         request: () => api.post("/auth/admin/register", agentData),
         onSuccess: async () => {
+          set({ loading: false, error: null });
+
           const { getAgentRecords } = get();
           await getAgentRecords();
           resolve({
@@ -137,14 +151,15 @@ export const useUserStore = create<UserStateAction & userState>((set, get) => ({
           });
         },
         onError: (error) => {
+          set({ loading: false, error: null });
+
           resolve({
             success: false,
             message:
-              error.response?.data?.message ||
-              "Failed to register agent",
+              error.response?.data?.message || "Failed to register agent",
           });
         },
       });
     });
-  }
+  },
 }));
