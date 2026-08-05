@@ -15,7 +15,7 @@ import { useUserStore } from "../../store/userStore";
 interface AddAgentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  // onAddAgent: (agentData: any) => Promise<void>;
+  onAddAgent?: (agentData: any) => Promise<void>;
 }
 
 interface FormData {
@@ -31,7 +31,6 @@ interface FormData {
 const AddAgentModal: React.FC<AddAgentModalProps> = ({
   isOpen,
   onClose,
-  // onAddAgent,
 }) => {
   const [formData, setFormData] = useState<FormData>({
     email: "",
@@ -48,6 +47,7 @@ const AddAgentModal: React.FC<AddAgentModalProps> = ({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const { registerAgent } = useUserStore();
+
   const roleOptions = [
     { value: "AGENT", label: "Agent" },
     { value: "ADMIN", label: "Admin" },
@@ -112,13 +112,16 @@ const AddAgentModal: React.FC<AddAgentModalProps> = ({
         address: formData.address.trim(),
       };
 
+      // Use onAddAgent if provided, otherwise use registerAgent from store
       const res = await registerAgent(agentData as any);
-      if (res.success) {
+      if (res?.success) {
         setSubmitSuccess(true);
         setTimeout(() => {
           onClose();
           resetForm();
         }, 1500);
+      } else {
+        setSubmitError("Failed to add agent. Please try again.");
       }
     } catch (err) {
       setSubmitError(

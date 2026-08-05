@@ -66,7 +66,7 @@ const ChangePassword = () => {
        setSuccess(true);
 
       setTimeout(() => {
-        navigate("/admin/dashboard", { replace: true });
+        navigate("/dashboard", { replace: true });
       }, 2000);
      }
     } catch (err: any) {

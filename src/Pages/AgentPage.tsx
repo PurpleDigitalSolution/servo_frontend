@@ -26,15 +26,14 @@ const AgentPage = () => {
   const [error] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const { user } = useAuthStore()
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { user } = useAuthStore();
   const {
     agentRecords,
     getAgentRecords,
     loading: storeLoading,
     error: storeError,
   } = useUserStore();
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Fetch agents on mount and when page/limit changes
   useEffect(() => {
@@ -49,7 +48,7 @@ const AgentPage = () => {
       }
     };
     fetchAgents();
-  }, [currentPage, itemsPerPage]);
+  }, [currentPage, itemsPerPage, getAgentRecords]);
 
   // Get agents from store
   const agents = agentRecords?.users || [];
@@ -69,7 +68,7 @@ const AgentPage = () => {
           agent.userProfile?.firstName?.toLowerCase().includes(term) ||
           agent.userProfile?.lastName?.toLowerCase().includes(term) ||
           agent.userProfile?.phoneNumber?.includes(term) ||
-          agent.id?.toLowerCase().includes(term),
+          agent.id?.toLowerCase().includes(term)
       );
     }
 
@@ -150,6 +149,8 @@ const AgentPage = () => {
     setCurrentPage(1);
   };
 
+
+
   // Show loader while fetching data
   if (loading || storeLoading) {
     return (
@@ -187,11 +188,12 @@ const AgentPage = () => {
   return (
     <MainLayout>
       <div className="p-6">
-
-         <AddAgentModal
+        {/* Add Agent Modal */}
+        <AddAgentModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
         />
+
         {/* Header Section */}
         <div className="mb-6">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
@@ -202,16 +204,15 @@ const AgentPage = () => {
               </p>
             </div>
             <div className="flex items-center space-x-3 mt-4 lg:mt-0">
-              {user && user.role === "ADMIN" ||
-                (user && user.role === "SUPER_ADMIN" && (
-                  <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="flex items-center space-x-2 bg-primary text-text-primary px-4 py-2 rounded-lg hover:bg-primary-hover transition-colors"
-                  >
-                    <Plus size={18} />
-                    <span>Add agent</span>
-                  </button>
-                ))}
+              {(user?.role === "SUPER_ADMIN") && (
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="flex items-center space-x-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-hover transition-colors"
+                >
+                  <Plus size={18} />
+                  <span>Add Agent</span>
+                </button>
+              )}
               <button
                 onClick={handleRefresh}
                 disabled={loading}
@@ -242,28 +243,19 @@ const AgentPage = () => {
           <div className="bg-surface p-4 rounded-lg border border-border">
             <p className="text-sm text-text-secondary">Active</p>
             <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-              {
-                agents.filter((agent) => agent.accountStatus === "ACTIVE")
-                  .length
-              }
+              {agents.filter((agent) => agent.accountStatus === "ACTIVE").length}
             </p>
           </div>
           <div className="bg-surface p-4 rounded-lg border border-border">
             <p className="text-sm text-text-secondary">Banned</p>
             <p className="text-2xl font-bold text-gray-600 dark:text-gray-400">
-              {
-                agents.filter((agent) => agent.accountStatus === "BANNED")
-                  .length
-              }
+              {agents.filter((agent) => agent.accountStatus === "BANNED").length}
             </p>
           </div>
           <div className="bg-surface p-4 rounded-lg border border-border">
             <p className="text-sm text-text-secondary">Suspended</p>
             <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-              {
-                agents.filter((agent) => agent.accountStatus === "SUSPENDED")
-                  .length
-              }
+              {agents.filter((agent) => agent.accountStatus === "SUSPENDED").length}
             </p>
           </div>
         </div>
@@ -300,9 +292,7 @@ const AgentPage = () => {
 
               <select
                 value={itemsPerPage}
-                onChange={(e) =>
-                  handleItemsPerPageChange(Number(e.target.value))
-                }
+                onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
                 className="px-4 py-2 border border-border rounded-lg bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
               >
                 {itemsPerPageOptions.map((option) => (
@@ -367,7 +357,7 @@ const AgentPage = () => {
                           <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-medium flex-shrink-0">
                             {getInitials(
                               agent.userProfile?.firstName || "",
-                              agent.userProfile?.lastName || "",
+                              agent.userProfile?.lastName || ""
                             )}
                           </div>
                           <div>
@@ -480,8 +470,6 @@ const AgentPage = () => {
           </div>
         )}
       </div>
-
-
     </MainLayout>
   );
 };
