@@ -26,6 +26,7 @@ import AgentPage from "./Pages/AgentPage";
 import Transactions from "./Pages/Transactions";
 import ChangePassword from "./Pages/ChangePassword";
 import PrivacyPolicy from "./Pages/PrivacyPolicy";
+import MustChangePasswordRoute from "./hooks/Change-default-pass";
 
   const router = createBrowserRouter(
     createRoutesFromElements(
@@ -51,9 +52,9 @@ import PrivacyPolicy from "./Pages/PrivacyPolicy";
         }/>
 
         <Route path='auth/change-password' element={
-         <GuestRoute>
+         <MustChangePasswordRoute>
            <ChangePassword/>
-         </GuestRoute>
+         </MustChangePasswordRoute>
         }/>
 
         <Route

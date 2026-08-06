@@ -227,7 +227,7 @@ const navigate = useNavigate()
           <div className="bg-surface p-4 rounded-lg border border-border">
             <p className="text-sm text-text-secondary">Delivered</p>
             <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-              {orders.filter((order) => String(order.status) === 'DELIVERED').length}
+              {orders.filter((order) => String(order.status) === 'COMPLETED').length}
             </p>
           </div>
         </div>
@@ -342,7 +342,7 @@ const navigate = useNavigate()
                             <p className="text-[11px] font-medium text-text-primary leading-tight">
                               {order.customer?.userProfile?.firstName} {order.customer?.userProfile?.lastName}
                             </p>
-                          
+
                           </div>
                         </div>
                       </td>
