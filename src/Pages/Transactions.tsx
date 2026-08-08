@@ -177,6 +177,8 @@ const Transactions = () => {
     const colors: Record<string, string> = {
       SUCCESS:
         "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+      COMPLETED:
+        "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
       PENDING:
         "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
       FAILED: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
@@ -213,7 +215,7 @@ const Transactions = () => {
   };
 
   const formatCurrency = (amount: string) => {
-    const amountInNaira = parseFloat(amount) / 100;
+    const amountInNaira = parseFloat(amount);
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "NGN",

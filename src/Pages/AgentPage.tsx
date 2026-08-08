@@ -18,6 +18,7 @@ import Loader from "../components/Loader";
 import { useUserStore } from "../store/userStore";
 import { useAuthStore } from "../store/authStore";
 import AddAgentModal from "../components/modal/AddAgent";
+import { useNavigate } from "react-router-dom";
 
 const AgentPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -34,6 +35,7 @@ const AgentPage = () => {
     loading: storeLoading,
     error: storeError,
   } = useUserStore();
+  const navigate = useNavigate();
 
   // Fetch agents on mount and when page/limit changes
   useEffect(() => {
@@ -412,6 +414,7 @@ const AgentPage = () => {
                       </td>
                       <td className="px-3 py-2">
                         <button
+                        onClick={() => navigate(`/agents/${agent.id}?agent=true`)}
                           className="p-1 hover:bg-surface-secondary rounded-lg transition-colors text-text-secondary hover:text-primary"
                           title="View agent"
                         >

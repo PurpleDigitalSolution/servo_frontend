@@ -111,7 +111,7 @@ export const useUserStore = create<UserStateAction & userState>((set, get) => ({
     set({ loading: true, error: null });
     return new Promise((resolve) => {
       handleRequest({
-        request: () => api.get(`/user-profile/`, { params: { id } }),
+        request: () => api.get(`/users/user-profile/${id}`),
         onSuccess: (data) => {
           set({ loading: false, error: null });
 
@@ -131,6 +131,7 @@ export const useUserStore = create<UserStateAction & userState>((set, get) => ({
               "Failed to fetch customer profile",
           });
         },
+        showToast: false,
       });
     });
   },

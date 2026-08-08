@@ -27,182 +27,192 @@ import Transactions from "./Pages/Transactions";
 import ChangePassword from "./Pages/ChangePassword";
 import PrivacyPolicy from "./Pages/PrivacyPolicy";
 import MustChangePasswordRoute from "./hooks/Change-default-pass";
+import AgentProfile from "./Pages/AgentProfile";
 
-  const router = createBrowserRouter(
-    createRoutesFromElements(
-      <Route path="/" element={<Layout />}>
-        <Route path='privacy-policy' element={
-          <PrivacyPolicy/>
-        }/>
-         <Route path='auth/forgot-password' element={
-         <GuestRoute>
-           <ForgetPassword/>
-         </GuestRoute>
-        }/>
-        <Route path='auth/verify-otp' element={
+const router = createBrowserRouter(
+  createRoutesFromElements(
+    <Route path="/" element={<Layout />}>
+      <Route path="privacy-policy" element={<PrivacyPolicy />} />
+      <Route
+        path="auth/forgot-password"
+        element={
           <GuestRoute>
-            <VerifyOTP/>
+            <ForgetPassword />
           </GuestRoute>
-        }/>
+        }
+      />
+      <Route
+        path="auth/verify-otp"
+        element={
+          <GuestRoute>
+            <VerifyOTP />
+          </GuestRoute>
+        }
+      />
 
-        <Route path='auth/reset-password' element={
-         <GuestRoute>
-           <ResetPassword/>
-         </GuestRoute>
-        }/>
+      <Route
+        path="auth/reset-password"
+        element={
+          <GuestRoute>
+            <ResetPassword />
+          </GuestRoute>
+        }
+      />
 
-        <Route path='auth/change-password' element={
-         <MustChangePasswordRoute>
-           <ChangePassword/>
-         </MustChangePasswordRoute>
-        }/>
+      <Route
+        path="auth/change-password"
+        element={
+          <MustChangePasswordRoute>
+            <ChangePassword />
+          </MustChangePasswordRoute>
+        }
+      />
 
-        <Route
-          index
-          element={
-            <Index/>
-          }
-        />
-        <Route
-          path="auth/login"
-          element={
-            <GuestRoute>
-              <LoginPage />
-            </GuestRoute>
-          }
-        />
+      <Route index element={<Index />} />
+      <Route
+        path="auth/login"
+        element={
+          <GuestRoute>
+            <LoginPage />
+          </GuestRoute>
+        }
+      />
 
+      <Route
+        path="dashboard"
+        element={
+          <Protected>
+            <Dashboard />
+          </Protected>
+        }
+      />
+      <Route
+        path="stations"
+        element={
+          <Protected>
+            <StationPage />
+          </Protected>
+        }
+      />
+      <Route
+        path="stations/:stationId"
+        element={
+          <Protected>
+            <StationDetails />
+          </Protected>
+        }
+      />
 
-        <Route
-          path="dashboard"
-          element={
-            <Protected>
-              <Dashboard />
-            </Protected>
-          }
-        />
-        <Route
-          path="stations"
-          element={
-            <Protected>
-              <StationPage />
-            </Protected>
-          }
-        />
-        <Route
-          path="stations/:stationId"
-          element={
-            <Protected>
-              <StationDetails />
-            </Protected>
-          }
-        />
-
-        <Route
-          path="orders"
-          element={
-            <Protected>
-              <Order />
-            </Protected>
-          }
-        />
-        <Route
-          path="orders/:orderId"
-          element={
-            <Protected>
-              <OrderDetails
-               />
-            </Protected>
-          }
-        />
-        <Route
-          path="orders/:orderId/transactions"
-          element={
-            <Protected>
-              <Transactions
-               />
-            </Protected>
-          }
-        />
-        <Route
-          path="customers"
-          element={
-            <Protected>
-              <Customers />
-            </Protected>
-          }
-        />
-        <Route
-          path="customers/:customerId"
-          element={
-            <Protected>
-              <CustomerPage />
-            </Protected>
-          }
-        />
-        <Route
-          path="agents"
-          element={
-            <Protected>
-              <AgentPage />
-            </Protected>
-          }
-        />
-        <Route
-          path="admins"
-          element={
-            <Protected>
-              <UnderConstruction />
-            </Protected>
-          }
-        />
-        <Route
-          path="drivers"
-          element={
-            <Protected>
-              <UnderConstruction />
-            </Protected>
-          }
-        />
-        <Route
-          path="analytics"
-          element={
-            <Protected>
-              <UnderConstruction />
-            </Protected>
-          }
-        />
-        <Route
-          path="logs"
-          element={
-            <Protected>
-              <UnderConstruction />
-            </Protected>
-          }
-        />
-        <Route
-          path="settings"
-          element={
-            <Protected>
-              <UnderConstruction />
-            </Protected>
-          }
-        />
-        <Route
-          path="profile"
-          element={
-            <Protected>
-              <UnderConstruction />
-            </Protected>
-          }
-        />
-        <Route path="*" element={<NotFound />} />
-      </Route>,
-    ),
-  );
+      <Route
+        path="orders"
+        element={
+          <Protected>
+            <Order />
+          </Protected>
+        }
+      />
+      <Route
+        path="orders/:orderId"
+        element={
+          <Protected>
+            <OrderDetails />
+          </Protected>
+        }
+      />
+      <Route
+        path="orders/:orderId/transactions"
+        element={
+          <Protected>
+            <Transactions />
+          </Protected>
+        }
+      />
+      <Route
+        path="customers"
+        element={
+          <Protected>
+            <Customers />
+          </Protected>
+        }
+      />
+      <Route
+        path="customers/:customerId"
+        element={
+          <Protected>
+            <CustomerPage />
+          </Protected>
+        }
+      />
+      <Route
+        path="agents"
+        element={
+          <Protected>
+            <AgentPage />
+          </Protected>
+        }
+      />
+      <Route
+        path="agents/:agentId"
+        element={
+          <Protected>
+            <AgentProfile />
+          </Protected>
+        }
+      />
+      <Route
+        path="admins"
+        element={
+          <Protected>
+            <UnderConstruction />
+          </Protected>
+        }
+      />
+      <Route
+        path="drivers"
+        element={
+          <Protected>
+            <UnderConstruction />
+          </Protected>
+        }
+      />
+      <Route
+        path="analytics"
+        element={
+          <Protected>
+            <UnderConstruction />
+          </Protected>
+        }
+      />
+      <Route
+        path="logs"
+        element={
+          <Protected>
+            <UnderConstruction />
+          </Protected>
+        }
+      />
+      <Route
+        path="settings"
+        element={
+          <Protected>
+            <UnderConstruction />
+          </Protected>
+        }
+      />
+      <Route
+        path="profile"
+        element={
+          <Protected>
+            <UnderConstruction />
+          </Protected>
+        }
+      />
+      <Route path="*" element={<NotFound />} />
+    </Route>,
+  ),
+);
 
 function App() {
-
   return (
     <>
       <Toaster

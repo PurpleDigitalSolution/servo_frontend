@@ -43,47 +43,26 @@ interface User {
   createdAt: string;
 }
 
-const CustomerPage = () => {
-  const { customerId } = useParams<{ customerId: string }>();
+const AgentProfile = () => {
+  const { agentId } = useParams<{ agentId: string }>();
   const navigate = useNavigate();
-  const { getCustomerProfile, loading, error, records } = useUserStore();
-  const { updateAccountStatus } = useAuthStore();
-  const [customer, setCustomer] = useState<User | null>(null);
+  const {
+    getCustomerProfile: getAgentProfile,
+    loading,
+    error,
+  } = useUserStore();
+  const [agent, setAgent] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-
-  const fetchCustomer = async () => {
-    setIsLoading(true);
-    try {
-      // If we have the customer in the list, use it
-      if (records?.users) {
-        const found = records.users.find((user) => user.id === customerId);
-        if (found) {
-          setCustomer(found as unknown as User);
-          setIsLoading(false);
-          return;
-        }
-      }
-
-      // Otherwise fetch single customer
-      const result = await getCustomerProfile(customerId!);
-      if (result.success) {
-        setCustomer(result.data as unknown as User);
-      }
-    } catch (err) {
-      console.error("Error fetching customer:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { updateAccountStatus } = useAuthStore();
 
   const handleStatusChange = async (newStatus: "SUSPENDED" | "ACTIVE") => {
-    if (!customer) return;
+    if (!agent) return;
     setIsUpdating(true);
     try {
-      const response = await updateAccountStatus(customer.id, newStatus);
+      const response = await updateAccountStatus(agent.id, newStatus);
       if (response.success) {
-        setCustomer({ ...customer, accountStatus: newStatus });
+        setAgent({ ...agent, accountStatus: newStatus });
       } else {
         console.error("Failed to update status:", response.message);
       }
@@ -94,13 +73,28 @@ const CustomerPage = () => {
     }
   };
 
+  const fetchAgent = async () => {
+    setIsLoading(true);
+    try {
+      const result = await getAgentProfile(agentId!);
+      console.log("Agent fetch result:", result.data);
+      if (result.success) {
+        setAgent(result.data as unknown as User);
+      }
+    } catch (err) {
+      console.error("Error fetching agent:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    if (customerId) {
+    if (agentId) {
       setTimeout(() => {
-        fetchCustomer();
+        fetchAgent();
       }, 0);
     }
-  }, [customerId]);
+  }, [agentId]);
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
@@ -121,6 +115,8 @@ const CustomerPage = () => {
     const colors: Record<string, string> = {
       ADMIN:
         "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+      AGENT:
+        "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
       MERCHANT:
         "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
       USER: "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400",
@@ -177,7 +173,7 @@ const CustomerPage = () => {
               <span>{error}</span>
             </div>
             <button
-              onClick={fetchCustomer}
+              onClick={fetchAgent}
               className="mt-2 text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 underline"
             >
               Retry
@@ -188,18 +184,18 @@ const CustomerPage = () => {
     );
   }
 
-  if (!customer) {
+  if (!agent) {
     return (
       <MainLayout>
         <div className="p-6">
           <div className="text-center py-12 bg-surface rounded-lg border border-border">
             <User className="w-12 h-12 text-text-secondary mx-auto mb-3" />
-            <div className="text-text-secondary mb-2">Customer not found</div>
+            <div className="text-text-secondary mb-2">Agent not found</div>
             <button
-              onClick={() => navigate("/customers")}
+              onClick={() => navigate("/agents")}
               className="text-primary hover:text-primary-hover text-sm font-medium"
             >
-              Back to customers
+              Back to agents
             </button>
           </div>
         </div>
@@ -207,7 +203,7 @@ const CustomerPage = () => {
     );
   }
 
-  const profile = customer.userProfile;
+  const profile = agent.userProfile;
 
   return (
     <MainLayout>
@@ -217,17 +213,17 @@ const CustomerPage = () => {
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => navigate("/customers")}
+                onClick={() => navigate("/agents")}
                 className="p-2 hover:bg-surface-secondary rounded-lg transition-colors text-text-secondary hover:text-text-primary"
               >
                 <ArrowLeft size={20} />
               </button>
               <div>
                 <h1 className="text-2xl font-bold text-text-primary">
-                  Customer Details
+                  Agent Details
                 </h1>
                 <p className="text-text-secondary mt-1">
-                  View and manage customer information
+                  View and manage agent information
                 </p>
               </div>
             </div>
@@ -243,7 +239,7 @@ const CustomerPage = () => {
           </div>
         </div>
 
-        {/* Customer Profile Card */}
+        {/* Agent Profile Card */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Profile */}
           <div className="lg:col-span-2 space-y-6">
@@ -265,22 +261,20 @@ const CustomerPage = () => {
                       )}
                     </h2>
                     <span
-                      className={`px-2 py-1 text-xs rounded-full ${getStatusColor(customer.accountStatus)}`}
+                      className={`px-2 py-1 text-xs rounded-full ${getStatusColor(agent.accountStatus)}`}
                     >
-                      {customer.accountStatus}
+                      {agent.accountStatus}
                     </span>
                   </div>
-                  <p className="text-text-secondary text-sm">
-                    {customer.email}
-                  </p>
+                  <p className="text-text-secondary text-sm">{agent.email}</p>
                   <div className="flex items-center space-x-4 mt-2">
                     <span className="text-xs text-text-secondary">
-                      ID: {customer.id.slice(0, 8)}...
+                      ID: {agent.id.slice(0, 8)}...
                     </span>
                     <span
-                      className={`px-2 py-0.5 text-[10px] rounded-full ${getRoleColor(customer.role)}`}
+                      className={`px-2 py-0.5 text-[10px] rounded-full ${getRoleColor(agent.role)}`}
                     >
-                      {customer.role}
+                      {agent.role}
                     </span>
                   </div>
                 </div>
@@ -310,7 +304,7 @@ const CustomerPage = () => {
                   <p className="text-xs text-text-secondary">Email Address</p>
                   <p className="text-sm font-medium text-text-primary mt-1 flex items-center space-x-1">
                     <Mail size={14} className="text-text-secondary" />
-                    <span>{customer.email}</span>
+                    <span>{agent.email}</span>
                   </p>
                 </div>
                 <div>
@@ -354,23 +348,23 @@ const CustomerPage = () => {
                 <div className="flex items-center justify-between py-2 border-b border-border">
                   <span className="text-sm text-text-secondary">Status</span>
                   <span
-                    className={`px-2 py-1 text-xs rounded-full ${getStatusColor(customer.accountStatus)}`}
+                    className={`px-2 py-1 text-xs rounded-full ${getStatusColor(agent.accountStatus)}`}
                   >
-                    {customer.accountStatus}
+                    {agent.accountStatus}
                   </span>
                 </div>
                 <div className="flex items-center justify-between py-2 border-b border-border">
                   <span className="text-sm text-text-secondary">Role</span>
                   <span
-                    className={`px-2 py-1 text-xs rounded-full ${getRoleColor(customer.role)}`}
+                    className={`px-2 py-1 text-xs rounded-full ${getRoleColor(agent.role)}`}
                   >
-                    {customer.role}
+                    {agent.role}
                   </span>
                 </div>
                 <div className="flex items-center justify-between py-2">
                   <span className="text-sm text-text-secondary">User ID</span>
                   <span className="text-sm font-mono text-text-primary">
-                    {customer.id.slice(0, 12)}...
+                    {agent.id.slice(0, 12)}...
                   </span>
                 </div>
               </div>
@@ -386,7 +380,7 @@ const CustomerPage = () => {
                 <div>
                   <p className="text-xs text-text-secondary">Joined</p>
                   <p className="text-sm font-medium text-text-primary mt-1">
-                    {formatDateTime(customer.createdAt)}
+                    {formatDateTime(agent.createdAt)}
                   </p>
                 </div>
                 {profile?.createdAt && (
@@ -420,15 +414,15 @@ const CustomerPage = () => {
               </h3>
               <div className="space-y-2">
                 {/* <button className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:bg-surface-secondary rounded-lg transition-colors">
-                  View Order History
+                  View Assigned Orders
                 </button>
                 <button className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:bg-surface-secondary rounded-lg transition-colors">
-                  View Payment History
+                  View Delivery History
                 </button>
                 <button className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:bg-surface-secondary rounded-lg transition-colors">
                   Send Email
                 </button> */}
-                {customer.accountStatus === "ACTIVE" ? (
+                {agent.accountStatus === "ACTIVE" ? (
                   <button
                     onClick={() => handleStatusChange("SUSPENDED")}
                     disabled={isUpdating}
@@ -441,7 +435,7 @@ const CustomerPage = () => {
                     )}
                     <span>{isUpdating ? "Updating..." : "Suspend Account"}</span>
                   </button>
-                ) : customer.accountStatus === "SUSPENDED" ? (
+                ) : agent.accountStatus === "SUSPENDED" ? (
                   <button
                     onClick={() => handleStatusChange("ACTIVE")}
                     disabled={isUpdating}
@@ -464,4 +458,4 @@ const CustomerPage = () => {
   );
 };
 
-export default CustomerPage;
+export default AgentProfile;

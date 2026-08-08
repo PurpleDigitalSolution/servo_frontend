@@ -20,7 +20,10 @@ interface AuthState {
 }
 
 interface AuthStateAction {
-  login: (payload: { email: string; password: string }) => Promise<ResponseData>;
+  login: (payload: {
+    email: string;
+    password: string;
+  }) => Promise<ResponseData>;
   logout: () => Promise<ResponseData>;
   reset: () => void;
   checkAuthentication: () => Promise<void>;
@@ -35,6 +38,7 @@ interface AuthStateAction {
     userId: string,
     newPassword: string,
   ) => Promise<ResponseData>;
+  updateAccountStatus:(userId: string, status: "SUSPENDED" | "ACTIVE") => Promise<ResponseData>;
 }
 
 const initialState: AuthState = {
@@ -79,8 +83,7 @@ export const useAuthStore = create<AuthState & AuthStateAction>((set, get) => ({
           });
         },
         onError: (error) => {
-          const failureMsg =
-            error?.response?.data?.message || "Login failed";
+          const failureMsg = error?.response?.data?.message || "Login failed";
 
           set({
             loading: false,
@@ -121,6 +124,31 @@ export const useAuthStore = create<AuthState & AuthStateAction>((set, get) => ({
     });
   },
 
+  updateAccountStatus: (userId: string, status: "SUSPENDED" | "ACTIVE", ) => {
+    set({ loading: true, error: null });
+    return new Promise((resolve) => {
+      handleRequest({
+        request: () => api.post("/auth/admin/account-status", { userId, status }),
+        onSuccess: (data) => {
+          set({ loading: false, error: null });
+          resolve({
+            success: true,
+            message: data.message || "Account status updated successfully",
+          });
+        },
+        onError: (error) => {
+          set({ loading: false, error: null });
+          resolve({
+            success: false,
+            message:
+              error.response?.data?.message ||
+              "Failed to update account status",
+          });
+        },
+        showToast: true,
+      });
+    });
+  },
   reset: () => {
     set({ ...initialState });
   },
@@ -246,8 +274,7 @@ export const useAuthStore = create<AuthState & AuthStateAction>((set, get) => ({
         onError: (error) => {
           resolve({
             success: false,
-            message:
-              error?.response?.data?.message || "Password change failed",
+            message: error?.response?.data?.message || "Password change failed",
           });
         },
         showToast: true,
