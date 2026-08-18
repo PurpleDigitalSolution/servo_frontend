@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import Loader from "../components/Loader";
 import { useAuthStore } from "../store/authStore";
+import AccountSuspensionModal from "../components/modal/ActionStatus";
 
 interface UserProfile {
   id: string;
@@ -41,6 +42,9 @@ interface User {
   accountStatus: string;
   userProfile: UserProfile;
   createdAt: string;
+  suspensionReason?: string;
+  suspendedAt?: string;
+  suspendedBy?: string;
 }
 
 const CustomerPage = () => {
@@ -51,6 +55,7 @@ const CustomerPage = () => {
   const [customer, setCustomer] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [showSuspensionModal, setShowSuspensionModal] = useState(false);
 
   const fetchCustomer = async () => {
     setIsLoading(true);
@@ -77,13 +82,17 @@ const CustomerPage = () => {
     }
   };
 
-  const handleStatusChange = async (newStatus: "SUSPENDED" | "ACTIVE") => {
+  const handleStatusChange = async (
+    newStatus: "SUSPENDED" | "ACTIVE",
+    data: { reason: string } = { reason: "" },
+  ) => {
     if (!customer) return;
     setIsUpdating(true);
     try {
-      const response = await updateAccountStatus(customer.id, newStatus);
+      const response = await updateAccountStatus(customer.id, newStatus, data);
       if (response.success) {
         setCustomer({ ...customer, accountStatus: newStatus });
+        setShowSuspensionModal(false);
       } else {
         console.error("Failed to update status:", response.message);
       }
@@ -92,6 +101,10 @@ const CustomerPage = () => {
     } finally {
       setIsUpdating(false);
     }
+  };
+
+  const handleSuspend = () => {
+    setShowSuspensionModal(true);
   };
 
   useEffect(() => {
@@ -419,18 +432,9 @@ const CustomerPage = () => {
                 Quick Actions
               </h3>
               <div className="space-y-2">
-                {/* <button className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:bg-surface-secondary rounded-lg transition-colors">
-                  View Order History
-                </button>
-                <button className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:bg-surface-secondary rounded-lg transition-colors">
-                  View Payment History
-                </button>
-                <button className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:bg-surface-secondary rounded-lg transition-colors">
-                  Send Email
-                </button> */}
                 {customer.accountStatus === "ACTIVE" ? (
                   <button
-                    onClick={() => handleStatusChange("SUSPENDED")}
+                    onClick={handleSuspend}
                     disabled={isUpdating}
                     className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex items-center gap-2"
                   >
@@ -439,7 +443,9 @@ const CustomerPage = () => {
                     ) : (
                       <XCircle size={16} />
                     )}
-                    <span>{isUpdating ? "Updating..." : "Suspend Account"}</span>
+                    <span>
+                      {isUpdating ? "Updating..." : "Suspend Account"}
+                    </span>
                   </button>
                 ) : customer.accountStatus === "SUSPENDED" ? (
                   <button
@@ -452,13 +458,38 @@ const CustomerPage = () => {
                     ) : (
                       <CheckCircle size={16} />
                     )}
-                    <span>{isUpdating ? "Updating..." : "Activate Account"}</span>
+                    <span>
+                      {isUpdating ? "Updating..." : "Activate Account"}
+                    </span>
                   </button>
                 ) : null}
               </div>
             </div>
           </div>
         </div>
+
+        {/* Suspension Modal */}
+        {showSuspensionModal && (
+          <AccountSuspensionModal
+            isOpen={showSuspensionModal}
+            onClose={() => setShowSuspensionModal(false)}
+            onSuspend={(data) => handleStatusChange("SUSPENDED", data)}
+            onReactivate={() => handleStatusChange("ACTIVE")}
+            userData={{
+              id: customer.id,
+              name: getFullName(
+                profile?.firstName || "",
+                profile?.lastName || "",
+              ),
+              email: customer.email,
+              phone: profile?.phoneNumber,
+              role: customer.role,
+              suspensionReason: customer.suspensionReason,
+              suspendedAt: customer.suspendedAt,
+              suspendedBy: customer.suspendedBy,
+            }}
+          />
+        )}
       </div>
     </MainLayout>
   );

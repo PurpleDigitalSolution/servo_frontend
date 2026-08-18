@@ -1,4 +1,3 @@
-import React from "react";
 import { Shield, Clock } from "lucide-react";
 
 interface AccountSuspendedModalProps {
