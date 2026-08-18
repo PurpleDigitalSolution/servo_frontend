@@ -22,6 +22,7 @@ import {
 import Loader from "../components/Loader";
 import { useAuthStore } from "../store/authStore";
 import AccountSuspensionModal from "../components/modal/ActionStatus";
+import { formatDate } from "../util/dateFormat";
 
 interface UserProfile {
   id: string;
@@ -139,13 +140,7 @@ const AgentProfile = () => {
     );
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
+
 
   const formatDateTime = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {

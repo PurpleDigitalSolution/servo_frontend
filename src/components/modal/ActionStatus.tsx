@@ -11,6 +11,7 @@ import {
   Phone,
   User,
 } from "lucide-react";
+import { formatDate } from "../../util/dateFormat";
 
 interface AccountSuspendedModalProps {
   isOpen: boolean;
@@ -131,15 +132,7 @@ const AccountSuspensionModal = ({
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+
 
   if (!isOpen) return null;
 

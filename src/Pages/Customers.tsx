@@ -16,6 +16,7 @@ import {
 import Loader from "../components/Loader";
 import { useUserStore } from "../store/userStore";
 import { useNavigate } from "react-router-dom";
+import { formatDate } from "../util/dateFormat";
 
 const Customers = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -132,13 +133,7 @@ const Customers = () => {
     );
   };
 
-  const formatDate = (dateValue: string | Date) => {
-    return new Date(dateValue).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
+
 
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName?.charAt(0) || ""}${lastName?.charAt(0) || ""}`.toUpperCase();

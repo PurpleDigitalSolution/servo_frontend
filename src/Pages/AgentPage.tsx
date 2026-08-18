@@ -19,6 +19,7 @@ import { useUserStore } from "../store/userStore";
 import { useAuthStore } from "../store/authStore";
 import AddAgentModal from "../components/modal/AddAgent";
 import { useNavigate } from "react-router-dom";
+import { formatDate } from "../util/dateFormat";
 
 const AgentPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -112,13 +113,7 @@ const AgentPage = () => {
     );
   };
 
-  const formatDate = (dateValue: string | Date) => {
-    return new Date(dateValue).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
+
 
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName?.charAt(0) || ""}${lastName?.charAt(0) || ""}`.toUpperCase();
