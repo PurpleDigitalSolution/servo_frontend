@@ -1,33 +1,36 @@
-import { useEffect, useState, useMemo } from 'react';
-import MainLayout from '../layout/MainLayout';
-import { useOrderStore } from '../store/ordertStore';
-import {
-  Search,
-  RefreshCw,
-  AlertCircle,
-  Download,
-  Eye,
-  MapPin,
-  Calendar,
-} from 'lucide-react';
-import Loader from '../components/Loader';
-import { useNavigate } from 'react-router-dom';
-
+// Order.jsx
+import { useEffect, useState, useMemo } from "react";
+import MainLayout from "../layout/MainLayout";
+import { useOrderStore } from "../store/ordertStore";
+import { Search, RefreshCw, AlertCircle, Download } from "lucide-react";
+import Loader from "../components/Loader";
+import { useAuthStore } from "../store/authStore";
+import OrderStats from "../components/OrderStats";
+import OrderTable from "../components/OrderTable";
 const Order = () => {
   const { records, error, fetchOrders } = useOrderStore();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [assignedFilter, setAssignedFilter] = useState<string>("all");
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const user = useAuthStore((state) => state.user);
 
   const statusOptions = [
-    { value: 'all', label: 'All Status' },
-    { value: 'PENDING_PAYMENT', label: 'Pending Payment' },
-    { value: 'CONFIRMED', label: 'Confirmed' },
-    { value: 'PROCESSING', label: 'Processing' },
-    { value: 'DELIVERED', label: 'Delivered' },
-    { value: 'CANCELLED', label: 'Cancelled' },
+    { value: "all", label: "All Status" },
+    { value: "PENDING_PAYMENT", label: "Pending Payment" },
+    { value: "PENDING_CONFIRMATION", label: "Pending Confirmation" },
+    { value: "CONFIRMED", label: "Confirmed" },
+    { value: "PROCESSING", label: "Processing" },
+    { value: "DELIVERED", label: "Delivered" },
+    { value: "CANCELLED", label: "Cancelled" },
+  ];
+
+  const assignedOptions = [
+    { value: "all", label: "All Orders" },
+    { value: "assigned", label: "Assigned" },
+    { value: "unassigned", label: "Unassigned" },
   ];
 
   // Fetch orders on mount
@@ -37,7 +40,7 @@ const Order = () => {
       try {
         await fetchOrders(currentPage, itemsPerPage);
       } catch (err) {
-        console.error('Error fetching orders:', err);
+        console.error("Error fetching orders:", err);
       } finally {
         setIsLoading(false);
       }
@@ -53,7 +56,6 @@ const Order = () => {
   const filteredOrders = useMemo(() => {
     let result = orders;
 
-    // Apply search filter
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase().trim();
       result = result.filter(
@@ -61,22 +63,27 @@ const Order = () => {
           order.id?.toLowerCase().includes(term) ||
           order.fuelType?.toLowerCase().includes(term) ||
           order.deliveryAddress?.toLowerCase().includes(term) ||
-          order.customer?.userProfile?.firstName?.toLowerCase().includes(term) ||
+          order.customer?.userProfile?.firstName
+            ?.toLowerCase()
+            .includes(term) ||
           order.customer?.userProfile?.lastName?.toLowerCase().includes(term) ||
           order.customer?.email?.toLowerCase().includes(term) ||
-          order.station?.name?.toLowerCase().includes(term)
+          order.station?.name?.toLowerCase().includes(term),
       );
     }
 
-    // Apply status filter
-    if (statusFilter !== 'all') {
-      result = result.filter(
-        (order) => order.status === statusFilter
-      );
+    if (statusFilter !== "all") {
+      result = result.filter((order) => order.status === statusFilter);
+    }
+
+    if (assignedFilter === "assigned") {
+      result = result.filter((order) => order.assignedAgentId);
+    } else if (assignedFilter === "unassigned") {
+      result = result.filter((order) => !order.assignedAgentId);
     }
 
     return result;
-  }, [orders, searchTerm, statusFilter]);
+  }, [orders, searchTerm, statusFilter, assignedFilter]);
 
   // Pagination logic
   const paginatedOrders = useMemo(() => {
@@ -90,10 +97,10 @@ const Order = () => {
 
   // Reset to first page when filters change
   useEffect(() => {
-  setTimeout(()=>{
+    setTimeout(() => {
       setCurrentPage(1);
-  },0)
-  }, [searchTerm, statusFilter, itemsPerPage]);
+    }, 0);
+  }, [searchTerm, statusFilter, assignedFilter, itemsPerPage]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -104,46 +111,57 @@ const Order = () => {
     try {
       await fetchOrders(currentPage, itemsPerPage, true);
     } catch (err) {
-      console.error('Error refreshing orders:', err);
+      console.error("Error refreshing orders:", err);
     } finally {
       setIsLoading(false);
     }
   };
-const navigate = useNavigate()
+
   const clearFilters = () => {
-    setSearchTerm('');
-    setStatusFilter('all');
+    setSearchTerm("");
+    setStatusFilter("all");
+    setAssignedFilter("all");
   };
 
+  // Helper functions
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
-      PENDING_PAYMENT: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-      CONFIRMED: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-      PROCESSING: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-      DELIVERED: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-      CANCELLED: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+      PENDING_PAYMENT:
+        "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+      PENDING_CONFIRMATION:
+      "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+      PROCESSING:
+        "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+      DELIVERED:
+        "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+      COMPLETED:
+        "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+      ASSIGNED:
+        "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+      CANCELLED: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
     };
-    return colors[status] || 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400';
+    return (
+      colors[status] ||
+      "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400"
+    );
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   const formatCurrency = (amount: string) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'NGN',
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "NGN",
     }).format(parseFloat(amount));
   };
-
-
 
   // Loading state
   if (isLoading && !records) {
@@ -155,6 +173,10 @@ const navigate = useNavigate()
       </MainLayout>
     );
   }
+
+  // Get assignment stats
+  const assignedCount = orders.filter((o) => o.assignedAgentId).length;
+  const unassignedCount = orders.filter((o) => !o.assignedAgentId).length;
 
   return (
     <MainLayout>
@@ -204,33 +226,8 @@ const navigate = useNavigate()
           </div>
         )}
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div className="bg-surface p-4 rounded-lg border border-border">
-            <p className="text-sm text-text-secondary">Total Orders</p>
-            <p className="text-2xl font-bold text-text-primary">
-              {totalOrders}
-            </p>
-          </div>
-          <div className="bg-surface p-4 rounded-lg border border-border">
-            <p className="text-sm text-text-secondary">Pending Payment</p>
-            <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-              {orders.filter((order) => order.status === 'PENDING_PAYMENT').length}
-            </p>
-          </div>
-          <div className="bg-surface p-4 rounded-lg border border-border">
-            <p className="text-sm text-text-secondary">Confirmed</p>
-            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-              {orders.filter((order) => order.status === 'CONFIRMED').length}
-            </p>
-          </div>
-          <div className="bg-surface p-4 rounded-lg border border-border">
-            <p className="text-sm text-text-secondary">Delivered</p>
-            <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-              {orders.filter((order) => String(order.status) === 'COMPLETED').length}
-            </p>
-          </div>
-        </div>
+        {/* Stats Component */}
+        <OrderStats orders={orders} totalOrders={totalOrders} />
 
         {/* Filters and Search */}
         <div className="bg-surface rounded-lg border border-border p-4 mb-6">
@@ -263,6 +260,18 @@ const navigate = useNavigate()
               </select>
 
               <select
+                value={assignedFilter}
+                onChange={(e) => setAssignedFilter(e.target.value)}
+                className="px-4 py-2 border border-border rounded-lg bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
+              >
+                {assignedOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+
+              <select
                 value={itemsPerPage}
                 onChange={(e) => {
                   setItemsPerPage(Number(e.target.value));
@@ -277,7 +286,9 @@ const navigate = useNavigate()
             </div>
 
             <div className="flex items-center space-x-4">
-              {(searchTerm || statusFilter !== "all") && (
+              {(searchTerm ||
+                statusFilter !== "all" ||
+                assignedFilter !== "all") && (
                 <button
                   onClick={clearFilters}
                   className="text-sm text-primary hover:text-primary-hover"
@@ -289,165 +300,33 @@ const navigate = useNavigate()
           </div>
         </div>
 
-        {/* Orders Table */}
-        {filteredOrders.length > 0 ? (
-          <div className="bg-surface rounded-lg border border-border overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead className="bg-surface-secondary">
-                  <tr>
-                    <th className="px-3 py-2 text-left text-[10px] font-medium text-text-secondary uppercase tracking-wider">
-                      Order ID
-                    </th>
-                    <th className="px-3 py-2 text-left text-[10px] font-medium text-text-secondary uppercase tracking-wider">
-                      Customer
-                    </th>
-                    <th className="px-3 py-2 text-left text-[10px] font-medium text-text-secondary uppercase tracking-wider">
-                      Station
-                    </th>
-                    <th className="px-3 py-2 text-left text-[10px] font-medium text-text-secondary uppercase tracking-wider">
-                      Fuel
-                    </th>
-                    <th className="px-3 py-2 text-left text-[10px] font-medium text-text-secondary uppercase tracking-wider">
-                      Qty
-                    </th>
-                    <th className="px-3 py-2 text-left text-[10px] font-medium text-text-secondary uppercase tracking-wider">
-                      Price
-                    </th>
-                    <th className="px-3 py-2 text-left text-[10px] font-medium text-text-secondary uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-3 py-2 text-left text-[10px] font-medium text-text-secondary uppercase tracking-wider">
-                      Address
-                    </th>
-                    <th className="px-3 py-2 text-left text-[10px] font-medium text-text-secondary uppercase tracking-wider">
-                      Created
-                    </th>
-                    <th className="px-3 py-2 text-left text-[10px] font-medium text-text-secondary uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {paginatedOrders.map((order) => {
-                    return(
-                    <tr key={order.id} className="hover:bg-surface-secondary transition-colors">
-                      <td className="px-3 py-2 text-[11px] font-medium text-text-primary">
-                        <span className="font-mono text-[10px]">{order.id.slice(0, 8)}...</span>
-                      </td>
-                      <td className="px-3 py-2">
-                        <div className="flex items-center space-x-2">
-
-                          <div>
-                            <p className="text-[11px] font-medium text-text-primary leading-tight">
-                              {order.customer?.userProfile?.firstName} {order.customer?.userProfile?.lastName}
-                            </p>
-
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-3 py-2 text-[11px] text-text-primary">
-                        {order.station?.name || 'N/A'}
-                      </td>
-                      <td className="px-3 py-2">
-                        <span className="px-1.5 py-0.5 text-[10px] bg-primary/10 text-primary rounded-full">
-                          {order.fuelType}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 text-[11px] text-text-secondary">
-                        {order.quantity}L
-                      </td>
-                      <td className="px-3 py-2 text-[11px] font-medium text-text-primary">
-                        {formatCurrency(order.totalAmount)}
-                      </td>
-                      <td className="px-3 py-2">
-                        <span
-                          className={`px-1.5 py-0.5 text-[10px] rounded-full ${getStatusColor(order.status)}`}
-                        >
-                          {order.status.replace('_', ' ')}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 text-[11px] text-text-secondary">
-                        <div className="flex items-center space-x-1">
-                          <MapPin size={12} className="text-text-secondary flex-shrink-0" />
-                          <span className="truncate max-w-[120px] text-[10px]">
-                            {order.deliveryAddress}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-3 py-2 text-[11px] text-text-secondary">
-                        <div className="flex items-center space-x-1">
-                          <Calendar size={12} className="text-text-secondary flex-shrink-0" />
-                          <span className="text-[10px]">{formatDate(order.createdAt)}</span>
-                        </div>
-                      </td>
-                      <td className="px-3 py-2">
-                        <button
-                        onClick={()=>{
-                          navigate(`/orders/${order.id}`)
-                        }}
-                          className="p-1 hover:bg-surface-secondary rounded-lg transition-colors text-text-secondary hover:text-primary"
-                          title="View Order"
-                        >
-                          <Eye size={14} />
-                        </button>
-                      </td>
-                    </tr>
-                  )})}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-border">
-                <div className="text-sm text-text-secondary">
-                  Page {currentPage} of {totalPages}
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="px-3 py-1 text-sm border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface-secondary transition-colors text-text-secondary"
-                  >
-                    Previous
-                  </button>
-                  <button
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-1 text-sm border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface-secondary transition-colors text-text-secondary"
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="text-center py-12 bg-surface rounded-lg border border-border">
-            <div className="text-text-secondary mb-2">No orders found</div>
-            <div className="text-sm text-text-secondary mb-4">
-              {searchTerm || statusFilter !== "all"
-                ? "Try adjusting your search or filter criteria"
-                : "No orders available."}
-            </div>
-            {(searchTerm || statusFilter !== "all") && (
-              <button
-                onClick={clearFilters}
-                className="text-primary hover:text-primary-hover text-sm font-medium"
-              >
-                Clear filters
-              </button>
-            )}
-          </div>
-        )}
+        {/* Table Component */}
+        <OrderTable
+          paginatedOrders={paginatedOrders}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+          formatDate={formatDate}
+          formatCurrency={formatCurrency}
+          getStatusColor={getStatusColor}
+        />
 
         {/* Footer */}
-        <div className="mt-6 flex items-center justify-between">
-          <div className="text-sm text-text-secondary">
-            Showing {filteredOrders.length} of {totalOrders} orders
+        {user && (user.role === "ADMIN" || user.role === "SUPER_ADMIN") && (
+          <div className="mt-6 flex items-center justify-between">
+            <div className="text-sm text-text-secondary">
+              Showing {filteredOrders.length} of {totalOrders} orders
+            </div>
+            <div className="text-sm text-text-secondary">
+              <span className="text-green-600 dark:text-green-400">
+                ● {assignedCount} assigned
+              </span>
+              <span className="ml-3 text-red-600 dark:text-red-400">
+                ● {unassignedCount} unassigned
+              </span>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </MainLayout>
   );

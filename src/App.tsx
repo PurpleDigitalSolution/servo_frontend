@@ -28,6 +28,7 @@ import ChangePassword from "./Pages/ChangePassword";
 import PrivacyPolicy from "./Pages/PrivacyPolicy";
 import MustChangePasswordRoute from "./hooks/Change-default-pass";
 import AgentProfile from "./Pages/AgentProfile";
+import StationAgent from "./Pages/Station-agent";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -99,6 +100,14 @@ const router = createBrowserRouter(
         element={
           <Protected>
             <StationDetails />
+          </Protected>
+        }
+      />
+      <Route
+        path="stations/:stationId/agents"
+        element={
+          <Protected>
+            <StationAgent />
           </Protected>
         }
       />

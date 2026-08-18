@@ -14,8 +14,6 @@ import {
   XCircle,
   AlertCircle,
   Building,
-  Download,
-  Printer,
   Calendar,
   Users,
   Eye,
@@ -25,18 +23,35 @@ import {
   Loader2,
   CreditCard,
   Flag,
+  User,
+  UserPlus,
+  X,
+  MessageCircle,
 } from "lucide-react";
 import Loader from "../components/Loader";
 import { useTransactionStore } from "../store/transactionStore";
+import { useAuthStore } from "../store/authStore";
+import AssignAgentModal from "../components/modal/AssignOrderAgent";
+import CustomerDetails from "../components/CustomerDetails";
 
 const OrderDetails = () => {
   const { orderId } = useParams<{ orderId: string }>();
+  const { user } = useAuthStore();
   const navigate = useNavigate();
-  const { getOrderById, loading, error, updateOrderStatus } = useOrderStore();
+  const {
+    getOrderById,
+    loading,
+    error,
+    updateOrderStatus,
+    assignAgentToOrder,
+  } = useOrderStore();
   const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isAssigning, setIsAssigning] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const { verifyTransaction } = useTransactionStore();
+  const [assignedAgentModalOpen, setAssignedAgentModalOpen] =
+    useState<boolean>(false);
 
   const handleUpdateStatus = async (status: string) => {
     if (!order) return;
@@ -60,7 +75,10 @@ const OrderDetails = () => {
       const res = await verifyTransaction(orderId!);
 
       if (res.status) {
-        const result = await updateOrderStatus(orderId!, "PENDING_CONFIRMATION");
+        const result = await updateOrderStatus(
+          orderId!,
+          "PENDING_CONFIRMATION",
+        );
         if (result) {
           setOrder(result);
         }
@@ -70,6 +88,11 @@ const OrderDetails = () => {
     } finally {
       setIsUpdating(false);
     }
+  };
+
+  const handleViewCustomerProfile = () => {
+    if (!order) return;
+    navigate(`/customers/${order.customerId}`);
   };
 
   const handleMarkAsInTransit = async () => {
@@ -116,11 +139,33 @@ const OrderDetails = () => {
     }
   };
 
+  const handleAssignAgent = () => {
+    if (!order) return;
+    setAssignedAgentModalOpen(true);
+  };
+
+  const handleAssignAgentSubmit = async (orderId: string, agentId: string) => {
+    try {
+      setIsAssigning(true);
+      const result = await assignAgentToOrder(orderId, agentId);
+      if (result.success) {
+        setOrder(result.data);
+        await fetchOrder();
+        return true;
+      }
+    } catch (err) {
+      console.error("Error assigning agent:", err);
+      return false;
+    } finally {
+      setIsAssigning(false);
+    }
+  };
+
   useEffect(() => {
     if (orderId) {
       setTimeout(() => {
         fetchOrder();
-      }, 0);
+      }, 100);
     }
   }, [orderId]);
 
@@ -149,6 +194,7 @@ const OrderDetails = () => {
   const getStatusIcon = (status: string) => {
     const icons: Record<string, React.ReactNode> = {
       PENDING_PAYMENT: <Clock size={16} />,
+      PENDING_CONFIRMATION: <Clock size={16} />,
       CONFIRMED: <CheckCircle size={16} />,
       PROCESSING: <Package size={16} />,
       IN_TRANSIT: <Truck size={16} />,
@@ -158,7 +204,6 @@ const OrderDetails = () => {
     };
     return icons[status] || <AlertCircle size={16} />;
   };
-
   const formatDateTime = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
@@ -233,8 +278,19 @@ const OrderDetails = () => {
   return (
     <MainLayout>
       <div className="p-6">
+        {/* Assign Agent Modal */}
+        <AssignAgentModal
+          stationId={order.stationId}
+          isOpen={assignedAgentModalOpen}
+          onClose={() => setAssignedAgentModalOpen(false)}
+          orderId={order.id}
+          currentAgentId={order.assignedAgentId}
+          onAssign={handleAssignAgentSubmit}
+          loading={isAssigning}
+        />
+
         {/* Header */}
-        <div className="mb-6">
+          <div className="mb-6">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center space-x-4">
               <button
@@ -267,19 +323,18 @@ const OrderDetails = () => {
                   <span>{isUpdating ? "Verifying..." : "Verify Payment"}</span>
                 </button>
               )}
-              {order.status === "PENDING_CONFIRMATION" && (
+              {(order.status === "PENDING_CONFIRMATION") && (
                 <button
                   onClick={() => handleUpdateStatus("PROCESSING")}
-                  className="flex items-center space-x-2 bg-surface border border-border text-text-secondary px-4 py-2 rounded-lg hover:bg-surface-secondary transition-colors"
+                  disabled={isUpdating}
+                  className="flex items-center space-x-2 bg-surface border border-border text-text-secondary px-4 py-2 rounded-lg hover:bg-surface-secondary transition-colors disabled:opacity-50"
                 >
-                  <span className="flex gap-2">
-                    {isUpdating ? (
-                      <Loader2 className="animate-spin h-4 w-4" />
-                    ) : (
-                      <CheckCircle size={18} />
-                    )}
-                    <span>Start Processing Order</span>
-                  </span>
+                  {isUpdating ? (
+                    <Loader2 className="animate-spin h-4 w-4" />
+                  ) : (
+                    <CheckCircle size={18} />
+                  )}
+                  <span>Start Processing Order</span>
                 </button>
               )}
               {order.status === "PROCESSING" && (
@@ -293,7 +348,9 @@ const OrderDetails = () => {
                   ) : (
                     <Truck size={18} />
                   )}
-                  <span>{isUpdating ? "Updating..." : "Mark as In Transit"}</span>
+                  <span>
+                    {isUpdating ? "Updating..." : "Mark as In Transit"}
+                  </span>
                 </button>
               )}
               {order.status === "IN_TRANSIT" && (
@@ -307,17 +364,11 @@ const OrderDetails = () => {
                   ) : (
                     <Flag size={18} />
                   )}
-                  <span>{isUpdating ? "Updating..." : "Mark as Completed"}</span>
+                  <span>
+                    {isUpdating ? "Updating..." : "Mark as Completed"}
+                  </span>
                 </button>
               )}
-              <button className="flex items-center space-x-2 bg-surface border border-border text-text-secondary px-4 py-2 rounded-lg hover:bg-surface-secondary transition-colors">
-                <Printer size={18} />
-                <span>Print</span>
-              </button>
-              <button className="flex items-center space-x-2 bg-surface border border-border text-text-secondary px-4 py-2 rounded-lg hover:bg-surface-secondary transition-colors">
-                <Download size={18} />
-                <span>Export</span>
-              </button>
             </div>
           </div>
         </div>
@@ -544,7 +595,10 @@ const OrderDetails = () => {
                     </p>
                   </div>
                 </div>
-                {(order.status === "CONFIRMED" || order.status === "PROCESSING" || order.status === "IN_TRANSIT" || order.status === "COMPLETED") && (
+                {(order.status === "CONFIRMED" ||
+                  order.status === "PROCESSING" ||
+                  order.status === "IN_TRANSIT" ||
+                  order.status === "COMPLETED") && (
                   <div className="flex items-start space-x-3">
                     <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
                       <CheckCircle
@@ -562,7 +616,9 @@ const OrderDetails = () => {
                     </div>
                   </div>
                 )}
-                {(order.status === "PROCESSING" || order.status === "IN_TRANSIT" || order.status === "COMPLETED") && (
+                {(order.status === "PROCESSING" ||
+                  order.status === "IN_TRANSIT" ||
+                  order.status === "COMPLETED") && (
                   <div className="flex items-start space-x-3">
                     <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
                       <Package
@@ -580,7 +636,8 @@ const OrderDetails = () => {
                     </div>
                   </div>
                 )}
-                {(order.status === "IN_TRANSIT" || order.status === "COMPLETED") && (
+                {(order.status === "IN_TRANSIT" ||
+                  order.status === "COMPLETED") && (
                   <div className="flex items-start space-x-3">
                     <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
                       <Truck
@@ -638,94 +695,120 @@ const OrderDetails = () => {
             </div>
 
             {/* Admin Actions */}
-            <div className="bg-surface rounded-lg border border-border p-6">
-              <h3 className="text-sm font-semibold text-text-primary mb-4 flex items-center space-x-2">
-                <Users size={18} className="text-primary" />
-                <span>Admin Actions</span>
-              </h3>
-              <div className="space-y-2">
-                {order.status === "PENDING_PAYMENT" && (
-                  <>
+            {user && (user.role === "ADMIN" || user.role === "SUPER_ADMIN") && (
+              <div className="bg-surface rounded-lg border border-border p-6">
+                <h3 className="text-sm font-semibold text-text-primary mb-4 flex items-center space-x-2">
+                  <Users size={18} className="text-primary" />
+                  <span>Admin Actions</span>
+                </h3>
+                <div className="space-y-2">
+                  {order.status === "PENDING_PAYMENT" && (
+                    <>
+                      <button
+                        onClick={handleVerifyPayment}
+                        disabled={isUpdating}
+                        className="w-full text-left px-3 py-2 text-sm bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg transition-colors flex items-center space-x-2"
+                      >
+                        {isUpdating ? (
+                          <Loader2 className="animate-spin h-4 w-4" />
+                        ) : (
+                          <CreditCard size={16} />
+                        )}
+                        <span>
+                          {isUpdating ? "Verifying..." : "Verify Payment"}
+                        </span>
+                      </button>
+                      <button className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex items-center space-x-2">
+                        <X size={16} />
+                        <span>Cancel Order</span>
+                      </button>
+                    </>
+                  )}
+                  {order.status === "CONFIRMED" && (
                     <button
-                      onClick={handleVerifyPayment}
+                      onClick={() => handleUpdateStatus("PROCESSING")}
+                      className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:bg-surface-secondary rounded-lg transition-colors"
+                    >
+                      Mark as Processing
+                    </button>
+                  )}
+                  {order.status === "PROCESSING" && (
+                    <button
+                      onClick={handleMarkAsInTransit}
                       disabled={isUpdating}
-                      className="w-full text-left px-3 py-2 text-sm bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg transition-colors flex items-center space-x-2"
+                      className="w-full text-left px-3 py-2 text-sm bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 rounded-lg transition-colors flex items-center space-x-2"
                     >
                       {isUpdating ? (
                         <Loader2 className="animate-spin h-4 w-4" />
                       ) : (
-                        <CreditCard size={16} />
+                        <Truck size={16} />
                       )}
                       <span>
-                        {isUpdating ? "Verifying..." : "Verify Payment"}
+                        {isUpdating ? "Updating..." : "Mark as In Transit"}
                       </span>
                     </button>
-                    <button className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
-                      Cancel Order
-                    </button>
-                  </>
-                )}
-                {order.status === "CONFIRMED" && (
-                  <button
-                    onClick={() => handleUpdateStatus("PROCESSING")}
-                    className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:bg-surface-secondary rounded-lg transition-colors"
-                  >
-                    Mark as Processing
-                  </button>
-                )}
-                {order.status === "PROCESSING" && (
-                  <button
-                    onClick={handleMarkAsInTransit}
-                    disabled={isUpdating}
-                    className="w-full text-left px-3 py-2 text-sm bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 rounded-lg transition-colors flex items-center space-x-2"
-                  >
-                    {isUpdating ? (
-                      <Loader2 className="animate-spin h-4 w-4" />
-                    ) : (
-                      <Truck size={16} />
-                    )}
-                    <span>{isUpdating ? "Updating..." : "Mark as In Transit"}</span>
-                  </button>
-                )}
-                {order.status === "IN_TRANSIT" && (
-                  <button
-                    onClick={handleMarkAsCompleted}
-                    disabled={isUpdating}
-                    className="w-full text-left px-3 py-2 text-sm bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 rounded-lg transition-colors flex items-center space-x-2"
-                  >
-                    {isUpdating ? (
-                      <Loader2 className="animate-spin h-4 w-4" />
-                    ) : (
-                      <Flag size={16} />
-                    )}
-                    <span>{isUpdating ? "Updating..." : "Mark as Completed"}</span>
-                  </button>
-                )}
-                {order.status !== "CANCELLED" &&
-                  order.status !== "COMPLETED" &&
-                  order.status !== "PENDING_PAYMENT" && (
-                    <button className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
-                      Cancel Order
+                  )}
+                  {order.status === "IN_TRANSIT" && (
+                    <button
+                      onClick={handleMarkAsCompleted}
+                      disabled={isUpdating}
+                      className="w-full text-left px-3 py-2 text-sm bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 rounded-lg transition-colors flex items-center space-x-2"
+                    >
+                      {isUpdating ? (
+                        <Loader2 className="animate-spin h-4 w-4" />
+                      ) : (
+                        <Flag size={16} />
+                      )}
+                      <span>
+                        {isUpdating ? "Updating..." : "Mark as Completed"}
+                      </span>
                     </button>
                   )}
-                <button className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:bg-surface-secondary rounded-lg transition-colors">
-                  Assign Agent
-                </button>
-                <button className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:bg-surface-secondary rounded-lg transition-colors">
-                  Contact Customer
-                </button>
-                <button className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:bg-surface-secondary rounded-lg transition-colors">
-                  View Customer Profile
-                </button>
-                <button
-                  onClick={() => navigate(`/orders/${order.id}/transactions`)}
-                  className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:bg-surface-secondary rounded-lg transition-colors flex items-center space-x-2"
-                >
-                  <Eye size={16} />
-                  <span>View Transactions</span>
-                </button>
+                  {order.status !== "CANCELLED" &&
+                    order.status !== "COMPLETED" &&
+                    order.status !== "PENDING_PAYMENT" && (
+                      <button className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex items-center space-x-2">
+                        <X size={16} />
+                        <span>Cancel Order</span>
+                      </button>
+                    )}
+                  <button
+                    onClick={handleAssignAgent}
+                    className={`w-full text-left px-3 py-2 text-sm text-text-secondary hover:bg-surface-secondary rounded-lg transition-colors flex items-center space-x-2 ${
+                      order.assignedAgentId
+                        ? "opacity-50 cursor-not-allowed"
+                        : ""
+                    }`}
+                    disabled={!!order.assignedAgentId}
+                  >
+                    <UserPlus size={16} />
+                    <span>
+                      {order.assignedAgentId
+                        ? "Agent Assigned"
+                        : "Assign Agent"}
+                    </span>
+                  </button>
+                  <button className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:bg-surface-secondary rounded-lg transition-colors flex items-center space-x-2">
+                    <MessageCircle size={16} />
+                    <span>Contact Customer</span>
+                  </button>
+                  <button
+                    onClick={handleViewCustomerProfile}
+                    className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:bg-surface-secondary rounded-lg transition-colors flex items-center space-x-2"
+                  >
+                    <User size={16} />
+                    <span>View Customer Profile</span>
+                  </button>
+                  <button
+                    onClick={() => navigate(`/orders/${order.id}/transactions`)}
+                    className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:bg-surface-secondary rounded-lg transition-colors flex items-center space-x-2"
+                  >
+                    <Eye size={16} />
+                    <span>View Transactions</span>
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Order Metadata */}
             <div className="bg-surface rounded-lg border border-border p-6">
@@ -764,6 +847,9 @@ const OrderDetails = () => {
                 )}
               </div>
             </div>
+
+            {/* customer details */}
+            <CustomerDetails customer={order.customer} />
           </div>
         </div>
       </div>

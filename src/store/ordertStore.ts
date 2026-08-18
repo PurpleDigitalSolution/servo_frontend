@@ -22,8 +22,13 @@ interface OrderAction {
   ) => Promise<void>;
   getOrderById: (orderId: string) => Promise<Order | null>;
   updateOrderStatus: (orderId: string, status: string) => Promise<Order | null>;
+   assignAgentToOrder: (orderId: string, agentId: string) => Promise<ResponseData>;
 }
-
+interface ResponseData {
+  success: boolean;
+  message: string;
+  data: any;
+}
 const initialState: OrderState = {
   loading: false,
   error: null,
@@ -83,6 +88,32 @@ export const useOrderStore = create<OrderState & OrderAction>((set, get) => ({
           resolve(null);
         },
         showToast: false,
+      });
+    });
+  },
+   assignAgentToOrder: async (orderId: string, agentId: string) => {
+    set({ loading: true, error: null });
+    return new Promise<ResponseData>((resolve) => {
+      handleRequest({
+        request: () => api.put(`/orders/${orderId}/agent`, { agentId }),
+        onSuccess: async (data) => {
+          await get().fetchOrders(1, 10, true);
+          set({ loading: false });
+          resolve({
+            success: true,
+            message: "Agent assigned successfully",
+            data: data.data,
+          });
+        },
+        onError: (error) => {
+          set({ error: error.response?.data?.message, loading: false });
+          resolve({
+            success: false,
+            message: "Failed to assign agent",
+            data: null,
+          });
+        },
+        showToast: true,
       });
     });
   }

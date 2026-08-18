@@ -81,7 +81,18 @@ interface StationAction {
     message?: string;
     data?: Station | null;
   }>;
-  updateStationStatus: (payload: string, newStatus: boolean) => Promise<{
+  updateStationStatus: (
+    payload: string,
+    newStatus: boolean,
+  ) => Promise<{
+    success: boolean;
+    message?: string;
+    data?: Station | null;
+  }>;
+  updateStation: (
+    payload: string,
+    newStatus: Partial<StationFormData>,
+  ) => Promise<{
     success: boolean;
     message?: string;
     data?: Station | null;
@@ -194,8 +205,9 @@ export const useStationStore = create<StationState & StationAction>(
 
       return new Promise((resolve) => {
         handleRequest({
-          request: () => api.patch(`/stations/${id}/status`, { isAvailable: newStatus }),
-          onSuccess: (data)=> {
+          request: () =>
+            api.patch(`/stations/${id}/status`, { isAvailable: newStatus }),
+          onSuccess: (data) => {
             set({ loadingStations: false });
             resolve({
               success: true,
@@ -217,6 +229,33 @@ export const useStationStore = create<StationState & StationAction>(
           showToast: true,
         });
       });
-    }
+    },
+    updateStation: async (id: string, payload: Partial<StationFormData>) => {
+      return new Promise((resolve) => {
+        handleRequest({
+          request: () => api.put(`/stations/${id}`, payload),
+          onSuccess: (data) => {
+            set({ loadingStations: false });
+            resolve({
+              success: true,
+              message: "Station updated successfully",
+              data: data.data as Station,
+            });
+          },
+          onError: (error) => {
+            set({
+              loadingStations: false,
+              error: error.message || "Failed to update station",
+            });
+            resolve({
+              success: false,
+              message: error.message || "Failed to update station",
+              data: null as Station | null,
+            });
+          },
+          showToast: true,
+        });
+      });
+    },
   }),
 );

@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import MainLayout from "../layout/MainLayout";
 import { useStationStore } from "../store/stationStore";
-import { Plus, Filter, AlertCircle, Edit2, Eye } from "lucide-react";
+import { Plus, Filter, AlertCircle, Eye } from "lucide-react";
 import Loader from "../components/Loader";
 import AddStationModal from "../components/modal/CreateStation";
 import type { StationList } from "../store/stationStore";
@@ -324,13 +324,6 @@ const StationPage = () => {
                           className="cursor-pointer text-primary hover:text-primary-hover mr-2"
                         >
                           <Eye size={16} />
-                        </button>
-                        <button
-                          name="edit station"
-                          aria-label="edit-station"
-                          className="cursor-pointer text-primary hover:text-primary-hover mr-2"
-                        >
-                          <Edit2 size={16} />
                         </button>
                       </td>
                     </tr>

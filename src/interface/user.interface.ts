@@ -4,7 +4,7 @@ export interface User {
   role: string;
   accountStatus: "ACTIVE" | "SUSPENDED" | "BANNED";
   userProfile: {
-    id:string;
+    id: string;
     userId: string;
     firstName: string;
     lastName: string;
@@ -12,5 +12,8 @@ export interface User {
     dateOfBirth: Date;
     address: string;
   } | null;
+  suspensionReason?: string;
+  suspendedAt?: string;
+  suspendedBy?: string;
   createdAt: Date;
 }

@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import Loader from "../components/Loader";
 import { useAuthStore } from "../store/authStore";
+import AccountSuspensionModal from "../components/modal/ActionStatus";
 
 interface UserProfile {
   id: string;
@@ -41,6 +42,9 @@ interface User {
   accountStatus: string;
   userProfile: UserProfile;
   createdAt: string;
+  suspensionReason?: string;
+  suspendedAt?: string;
+  suspendedBy?: string;
 }
 
 const AgentProfile = () => {
@@ -55,14 +59,19 @@ const AgentProfile = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const { updateAccountStatus } = useAuthStore();
+  const [showSuspensionModal, setShowSuspensionModal] = useState(false);
 
-  const handleStatusChange = async (newStatus: "SUSPENDED" | "ACTIVE") => {
+  const handleStatusChange = async (
+    newStatus: "SUSPENDED" | "ACTIVE",
+    data: { reason: string } = { reason: "" },
+  ) => {
     if (!agent) return;
     setIsUpdating(true);
     try {
-      const response = await updateAccountStatus(agent.id, newStatus);
+      const response = await updateAccountStatus(agent.id, newStatus, data);
       if (response.success) {
         setAgent({ ...agent, accountStatus: newStatus });
+        setShowSuspensionModal(false);
       } else {
         console.error("Failed to update status:", response.message);
       }
@@ -73,11 +82,14 @@ const AgentProfile = () => {
     }
   };
 
+  const handleSuspend = () => {
+    setShowSuspensionModal(true);
+  };
+
   const fetchAgent = async () => {
     setIsLoading(true);
     try {
       const result = await getAgentProfile(agentId!);
-      console.log("Agent fetch result:", result.data);
       if (result.success) {
         setAgent(result.data as unknown as User);
       }
@@ -413,18 +425,9 @@ const AgentProfile = () => {
                 Quick Actions
               </h3>
               <div className="space-y-2">
-                {/* <button className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:bg-surface-secondary rounded-lg transition-colors">
-                  View Assigned Orders
-                </button>
-                <button className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:bg-surface-secondary rounded-lg transition-colors">
-                  View Delivery History
-                </button>
-                <button className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:bg-surface-secondary rounded-lg transition-colors">
-                  Send Email
-                </button> */}
                 {agent.accountStatus === "ACTIVE" ? (
                   <button
-                    onClick={() => handleStatusChange("SUSPENDED")}
+                    onClick={handleSuspend}
                     disabled={isUpdating}
                     className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex items-center gap-2"
                   >
@@ -433,7 +436,9 @@ const AgentProfile = () => {
                     ) : (
                       <XCircle size={16} />
                     )}
-                    <span>{isUpdating ? "Updating..." : "Suspend Account"}</span>
+                    <span>
+                      {isUpdating ? "Updating..." : "Suspend Account"}
+                    </span>
                   </button>
                 ) : agent.accountStatus === "SUSPENDED" ? (
                   <button
@@ -446,13 +451,38 @@ const AgentProfile = () => {
                     ) : (
                       <CheckCircle size={16} />
                     )}
-                    <span>{isUpdating ? "Updating..." : "Activate Account"}</span>
+                    <span>
+                      {isUpdating ? "Updating..." : "Activate Account"}
+                    </span>
                   </button>
                 ) : null}
               </div>
             </div>
           </div>
         </div>
+
+        {/* Suspension Modal */}
+        {showSuspensionModal && (
+          <AccountSuspensionModal
+            isOpen={showSuspensionModal}
+            onClose={() => setShowSuspensionModal(false)}
+            onSuspend={(data) => handleStatusChange("SUSPENDED", data)}
+            onReactivate={() => handleStatusChange("ACTIVE")}
+            userData={{
+              id: agent.id,
+              name: getFullName(
+                profile?.firstName || "",
+                profile?.lastName || "",
+              ),
+              email: agent.email,
+              phone: profile?.phoneNumber,
+              role: agent.role,
+              suspensionReason: agent.suspensionReason,
+              suspendedAt: agent.suspendedAt,
+              suspendedBy: agent.suspendedBy,
+            }}
+          />
+        )}
       </div>
     </MainLayout>
   );

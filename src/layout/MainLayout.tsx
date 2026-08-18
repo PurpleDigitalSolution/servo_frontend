@@ -20,7 +20,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
   const getUserRole = () => {
     if (user?.role === "ADMIN" || user?.role === "SUPER_ADMIN")
       return "Administrator";
-    if (user?.role === "STAFF") return "Staff";
+    if (user?.role === "AGENT") return "Staff";
     return "User";
   };
   // const role = user?.role || "";
@@ -109,6 +109,8 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
               <h1 className="text-lg md:text-xl font-semibold text-text-primary">
                 {user?.role === "ADMIN" || user?.role === "SUPER_ADMIN"
                   ? "Admin Dashboard"
+                  : user?.role === "AGENT"
+                  ? "Staff Dashboard"
                   : "Staff Dashboard"}
               </h1>
             </div>

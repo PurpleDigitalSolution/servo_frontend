@@ -38,7 +38,11 @@ interface AuthStateAction {
     userId: string,
     newPassword: string,
   ) => Promise<ResponseData>;
-  updateAccountStatus:(userId: string, status: "SUSPENDED" | "ACTIVE") => Promise<ResponseData>;
+  updateAccountStatus: (
+    userId: string,
+    status: "SUSPENDED" | "ACTIVE",
+    data: { reason: string },
+  ) => Promise<ResponseData>;
 }
 
 const initialState: AuthState = {
@@ -124,11 +128,22 @@ export const useAuthStore = create<AuthState & AuthStateAction>((set, get) => ({
     });
   },
 
-  updateAccountStatus: (userId: string, status: "SUSPENDED" | "ACTIVE", ) => {
+  updateAccountStatus: (
+    userId: string,
+    status: "SUSPENDED" | "ACTIVE",
+    data: { reason: string },
+  ) => {
     set({ loading: true, error: null });
+    const reasonText = data?.reason?.trim();
+    const payloadData = reasonText ? { reason: reasonText } : undefined;
     return new Promise((resolve) => {
       handleRequest({
-        request: () => api.post("/auth/admin/account-status", { userId, status }),
+        request: () =>
+          api.post("/auth/admin/account-status", {
+            userId,
+            status,
+            ...(payloadData && { data: payloadData }),
+          }),
         onSuccess: (data) => {
           set({ loading: false, error: null });
           resolve({
