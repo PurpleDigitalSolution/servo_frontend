@@ -1,5 +1,6 @@
 export interface User {
   id: string;
+  stationId?:string;
   email: string;
   role: string;
   accountStatus: "ACTIVE" | "SUSPENDED" | "BANNED";

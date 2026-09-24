@@ -1,35 +1,18 @@
-
 import {
-  BarChart,
-  ClipboardClock,
-  Fuel,
-  Gauge,
-  Package,
-  Settings,
-  Truck,
-  User,
-  UserLock,
-  Users,
-  UserStar,
   ChevronDown,
   ChevronRight,
   ChevronLeft,
   ChevronRight as ChevronRightIcon,
   LogOut,
+  Fuel,
+  User,
 } from "lucide-react";
 import React, { useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
+import { useBadgeStore } from "../store/badgeStore";
 import toast from "react-hot-toast";
-
-interface NavItem {
-  name: string;
-  href: string;
-  icon: React.ReactNode;
-  badge?: string;
-  role?: string;
-  children?: NavItem[];
-}
+import type { NavItem } from "../constants/navItems";
 
 interface SideBarProps {
   isCollapsed?: boolean;
@@ -38,96 +21,50 @@ interface SideBarProps {
   onClose?: () => void;
 }
 
-const SuperAdminSidebar = ({
+interface SidebarProps extends SideBarProps {
+  navItems: NavItem[];
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({
+  navItems,
   isCollapsed = false,
   onToggleCollapse,
   isMobile = false,
   onClose,
-}: SideBarProps) => {
+}) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
+
+  // 👇 live badge map from the store
+  const badges = useBadgeStore((s) => s.badges);
+  const clearBadge = useBadgeStore((s) => s.clearBadge);
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({
     Users: true,
   });
 
-  const navItems: NavItem[] = [
-    {
-      name: "Dashboard",
-      href: "/dashboard",
-      icon: <Gauge size={20} />,
-    },
-    {
-      name: "Orders",
-      href: "/orders",
-      icon: <Package size={20} />,
-    },
-    {
-      name: "Stations",
-      href: "/stations",
-      icon: <Fuel size={20} />,
-    },
-    {
-      name: "Users",
-      href: "/customers",
-      icon: <User size={20} />,
-      children: [
-        {
-          name: "All Customers",
-          href: "/customers",
-          icon: <Users size={18} />,
-        },
-        { name: "Agents", href: "/agents", icon: <UserStar size={18} /> },
-        { name: "Admins", href: "/admins", icon: <UserLock size={18} /> },
-        { name: "Drivers", href: "/drivers", icon: <Truck size={18} /> },
-      ],
-    },
-    {
-      name: "Analytics",
-      href: "/analytics",
-      icon: <BarChart size={20} />,
-      badge: "soon",
-    },
-    {
-      name: "Logs",
-      href: "/logs",
-      icon: <ClipboardClock size={20} />,
-      role: "admin",
-    },
-    {
-      name: "Settings",
-      href: "/settings",
-      icon: <Settings size={20} />,
-    },
-  ];
-
   const toggleExpand = (itemName: string, e: React.MouseEvent) => {
     e.preventDefault();
-    setExpandedItems((prev) => ({
-      ...prev,
-      [itemName]: !prev[itemName],
-    }));
+    setExpandedItems((prev) => ({ ...prev, [itemName]: !prev[itemName] }));
   };
 
-  const isChildActive = (children: NavItem[]) => {
-    return children.some(
+  const isChildActive = (children: NavItem[]) =>
+    children.some(
       (child) =>
         location.pathname === child.href ||
         location.pathname.startsWith(child.href + "/"),
     );
-  };
 
-  // Close mobile sidebar when a link is clicked
-  const handleLinkClick = () => {
-    if (isMobile && onClose) {
-      onClose();
-    }
+  const handleLinkClick = (item?: NavItem) => {
+    // clear badge when user visits the page
+    if (item?.badgeKey) clearBadge(item.badgeKey);
+    if (isMobile && onClose) onClose();
   };
 
   const handleLogout = async () => {
     try {
-     const res = await logout();
-      if(!res.success) {
+      const res = await logout();
+      if (!res.success) {
         toast.error(res.message);
         return;
       }
@@ -137,75 +74,67 @@ const SuperAdminSidebar = ({
     }
   };
 
-  const renderNavItem = (item: NavItem, depth: number = 0) => {
-    const hasChildren = item.children && item.children.length > 0;
+  /** Resolve what to display for the badge (dynamic count OR static label) */
+  const getBadgeText = (item: NavItem): string | null => {
+    if (item.badgeKey) {
+      const value = badges[item.badgeKey];
+      if (value === undefined || value === 0 || value === "") {
+        return item.badgeLabel ?? null;
+      }
+      if (typeof value === "number") return value > 99 ? "99+" : String(value);
+      return String(value);
+    }
+    return item.badgeLabel ?? null;
+  };
+
+  const renderNavItem = (item: NavItem, depth = 0): React.ReactNode => {
+    const hasChildren = !!item.children?.length;
     const isExpanded = expandedItems[item.name] || false;
     const isParentActive = hasChildren && isChildActive(item.children!);
+    const badgeText = getBadgeText(item);
 
-    // Role-based visibility check
-    if (item.role === "admin") {
-      const currentUserRole = user?.role || "user";
-      if (currentUserRole !== "admin") return null;
+    // Role-based visibility
+    if (item.roles && item.roles.length > 0) {
+      const currentRole = user?.role || "user";
+      if (!item.roles.includes(currentRole)) return null;
     }
 
-    // Don't show children or text when collapsed (except for mobile)
+    // Collapsed (desktop) view
     if (isCollapsed && !isMobile && depth === 0) {
-      if (hasChildren) {
-        return (
-          <div key={item.name} className="w-full relative group">
-            <NavLink
-              to={item.href}
-              className={({ isActive }) => `
-                flex items-center justify-center px-3 py-2.5 rounded-lg transition-all duration-200
-                ${
-                  isActive || isParentActive
-                    ? "bg-primary text-white shadow-md shadow-primary/20"
-                    : "text-text-secondary hover:bg-surface-secondary hover:text-text-primary"
-                }
-                group relative
-              `}
-              title={item.name}
-              onClick={handleLinkClick}
-            >
-              {({ isActive }) => (
-                <span
-                  className={`${isActive || isParentActive ? "text-white" : "text-text-secondary group-hover:text-text-primary"} transition-colors`}
-                >
-                  {item.icon}
-                </span>
-              )}
-            </NavLink>
-          </div>
-        );
-      }
-
       return (
         <NavLink
           key={item.name}
           to={item.href}
           className={({ isActive }) => `
-            flex items-center justify-center px-3 py-2.5 rounded-lg transition-all duration-200
+            flex items-center justify-center px-3 py-2.5 rounded-lg transition-all duration-200 relative
             ${
-              isActive
+              isActive || isParentActive
                 ? "bg-primary text-white shadow-md shadow-primary/20"
                 : "text-text-secondary hover:bg-surface-secondary hover:text-text-primary"
             }
-            group relative
+            group
           `}
           title={item.name}
-          onClick={handleLinkClick}
+          onClick={() => handleLinkClick(item)}
         >
           {({ isActive }) => (
-            <span
-              className={`${isActive ? "text-white" : "text-text-secondary group-hover:text-text-primary"} transition-colors`}
-            >
-              {item.icon}
-            </span>
+            <>
+              <span
+                className={`${isActive || isParentActive ? "text-white" : "text-text-secondary group-hover:text-text-primary"} transition-colors`}
+              >
+                {item.icon}
+              </span>
+              {/* tiny dot indicator for unread badges when collapsed */}
+              {badgeText && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500" />
+              )}
+            </>
           )}
         </NavLink>
       );
     }
 
+    // Parent with children
     if (hasChildren) {
       return (
         <div key={item.name} className="w-full">
@@ -230,37 +159,35 @@ const SuperAdminSidebar = ({
             <span className="flex-1 text-sm font-medium text-left">
               {item.name}
             </span>
-
-            {item.badge && (
+            {badgeText && (
               <span
-                className={`
-                text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase
-                ${
+                className={`text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase ${
                   isParentActive
                     ? "bg-white/20 text-white"
                     : "bg-primary/10 text-primary"
-                }
-              `}
+                }`}
               >
-                {item.badge}
+                {badgeText}
               </span>
             )}
-
             <span className="ml-auto">
               {isExpanded ? (
                 <ChevronDown
                   size={16}
-                  className={`${isParentActive ? "text-white" : "text-text-secondary"}`}
+                  className={
+                    isParentActive ? "text-white" : "text-text-secondary"
+                  }
                 />
               ) : (
                 <ChevronRight
                   size={16}
-                  className={`${isParentActive ? "text-white" : "text-text-secondary"}`}
+                  className={
+                    isParentActive ? "text-white" : "text-text-secondary"
+                  }
                 />
               )}
             </span>
           </button>
-
           {isExpanded && (
             <div className="mt-1 space-y-1">
               {item.children!.map((child) => renderNavItem(child, depth + 1))}
@@ -270,6 +197,7 @@ const SuperAdminSidebar = ({
       );
     }
 
+    // Leaf link
     return (
       <NavLink
         key={item.name}
@@ -284,7 +212,7 @@ const SuperAdminSidebar = ({
           }
           group relative
         `}
-        onClick={handleLinkClick}
+        onClick={() => handleLinkClick(item)}
       >
         {({ isActive }) => (
           <>
@@ -294,19 +222,15 @@ const SuperAdminSidebar = ({
               {item.icon}
             </span>
             <span className="flex-1 text-sm font-medium">{item.name}</span>
-
-            {item.badge && (
+            {badgeText && (
               <span
-                className={`
-                text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase
-                ${
+                className={`text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase ${
                   isActive
                     ? "bg-white/20 text-white"
                     : "bg-primary/10 text-primary"
-                }
-              `}
+                }`}
               >
-                {item.badge}
+                {badgeText}
               </span>
             )}
           </>
@@ -318,22 +242,23 @@ const SuperAdminSidebar = ({
   return (
     <aside
       className={`
-      h-screen bg-surface border-r border-border flex flex-col
-      ${isMobile ? "w-72" : isCollapsed ? "w-20" : "w-64"}
-      transition-all duration-300
-    `}
-    >
-      {/* Logo/Brand Section */}
-      <div
-        className={`
-        p-4 border-b border-border flex items-center
-        ${isCollapsed && !isMobile ? "justify-center" : "justify-between"}
+        h-screen bg-surface border-r border-border flex flex-col
+        ${isMobile ? "w-72" : isCollapsed ? "w-20" : "w-64"}
+        transition-all duration-300
       `}
+    >
+      {/* Logo */}
+      <div
+        className={`p-4 border-b border-border flex items-center ${
+          isCollapsed && !isMobile ? "justify-center" : "justify-between"
+        }`}
       >
         <NavLink
           to="/dashboard"
-          className={`flex items-center gap-2 group ${isCollapsed && !isMobile ? "justify-center" : ""}`}
-          onClick={handleLinkClick}
+          className={`flex items-center gap-2 group ${
+            isCollapsed && !isMobile ? "justify-center" : ""
+          }`}
+          onClick={() => handleLinkClick()}
         >
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center transition-transform group-hover:scale-105 flex-shrink-0">
             <Fuel size={20} className="text-white" />
@@ -343,7 +268,6 @@ const SuperAdminSidebar = ({
           )}
         </NavLink>
 
-        {/* Collapse Toggle Button (Desktop only) */}
         {!isMobile && onToggleCollapse && (
           <button
             onClick={onToggleCollapse}
@@ -359,20 +283,19 @@ const SuperAdminSidebar = ({
         )}
       </div>
 
-      {/* Navigation */}
+      {/* Nav */}
       <nav className="flex-1 overflow-y-auto p-3 space-y-1">
         {navItems.map((item) => renderNavItem(item))}
       </nav>
 
-      {/* Footer Section */}
+      {/* Footer */}
       <div className="p-3 border-t border-border">
         {!isCollapsed || isMobile ? (
           <div className="space-y-2">
-            {/* User Info */}
             <NavLink
               to="/profile"
               className="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface-secondary hover:bg-surface-secondary/80 transition-colors"
-              onClick={handleLinkClick}
+              onClick={() => handleLinkClick()}
             >
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                 <User size={16} className="text-primary" />
@@ -387,7 +310,6 @@ const SuperAdminSidebar = ({
               </div>
             </NavLink>
 
-            {/* Logout Button */}
             <button
               onClick={handleLogout}
               className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-text-secondary hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition-colors"
@@ -397,7 +319,6 @@ const SuperAdminSidebar = ({
             </button>
           </div>
         ) : (
-          /* Collapsed Logout Button */
           <button
             onClick={handleLogout}
             className="w-full flex items-center justify-center px-3 py-2.5 rounded-lg text-text-secondary hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition-colors"
@@ -410,5 +331,3 @@ const SuperAdminSidebar = ({
     </aside>
   );
 };
-
-export default SuperAdminSidebar;

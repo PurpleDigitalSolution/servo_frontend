@@ -1,78 +1,85 @@
-import React, { useState } from "react";
-import { Menu, X } from "lucide-react";
-import SideBar from "../components/SideBar";
+import React, { useState, useMemo } from "react";
+import { Menu, X, Wifi, WifiOff } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
 import ThemeToggle from "../util/Theme";
-import SuperAdminSidebar from "../components/SideBar";
-import AdminSidebar from "../components/Admin";
-import AgentSidebar from "../components/AgentSidebar";
+import { Sidebar } from "../components/SideBar";
+import {
+  superAdminNavItems,
+  agentNavItems,
+  type NavItem,
+} from "../constants/navItems";
+import { useBadgeStream } from "../util/badgeStream";
 
 const MainLayout = ({ children }: { children: React.ReactNode }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const { user } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
 
-  const handleToggleCollapse = () => {
-    setIsSidebarCollapsed(!isSidebarCollapsed);
-  };
+  const handleToggleCollapse = () => setIsSidebarCollapsed((v) => !v);
+  const role = user?.role || "";
 
-  // Determine user role for display
+  const navItems: NavItem[] = useMemo(() => {
+    switch (role) {
+      case "SUPER_ADMIN":
+        return superAdminNavItems;
+      case "AGENT":
+        return agentNavItems;
+      default:
+        return [];
+    }
+  }, [role]);
+
+  const stationId = user?.stationId;
+  const agentId = user?.id;
+
+  const { isConnected } = useBadgeStream(
+    role === "AGENT" ? stationId : undefined,
+    role === "AGENT" ? agentId : undefined,
+  );
+
   const getUserRole = () => {
-    if (user?.role === "ADMIN" || user?.role === "SUPER_ADMIN")
-      return "Administrator";
-    if (user?.role === "AGENT") return "Staff";
+    if (role === "ADMIN" || role === "SUPER_ADMIN") return "Administrator";
+    if (role === "AGENT") return "Staff";
     return "User";
   };
-  // const role = user?.role || "";
+
   const getUserInitial = () => {
     const name = user?.userProfile?.firstName || "User";
     return name.charAt(0).toUpperCase();
   };
-  const role = user?.role || "";
-  const renderSidebar = () => {
-    switch (role) {
-      case "SUPER_ADMIN":
-        return (
-          <SuperAdminSidebar
-            isCollapsed={isSidebarCollapsed}
-            onToggleCollapse={handleToggleCollapse}
-          />
-        );
-      case "ADMIN":
-        return (
-          <AdminSidebar
-            isCollapsed={isSidebarCollapsed}
-            onToggleCollapse={handleToggleCollapse}
-          />
-        );
-      case "AGENT":
-        return (
-          <AgentSidebar
-            isCollapsed={isSidebarCollapsed}
-            onToggleCollapse={handleToggleCollapse}
-          />
-        );
-      default:
-        return null;
-    }
-  };
+
+  const dashboardTitle =
+    role === "ADMIN" || role === "SUPER_ADMIN"
+      ? "Admin Dashboard"
+      : role === "AGENT"
+        ? "Staff Dashboard"
+        : "Dashboard";
+
+  const hasSidebar = navItems.length > 0;
+
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden">
       {/* Desktop Sidebar */}
-      <div className="hidden md:block">{renderSidebar()}</div>
+      {hasSidebar && (
+        <div className="hidden md:block">
+          <Sidebar
+            navItems={navItems}
+            isCollapsed={isSidebarCollapsed}
+            onToggleCollapse={handleToggleCollapse}
+          />
+        </div>
+      )}
 
       {/* Mobile Sidebar Overlay */}
-      {isMobileMenuOpen && (
+      {isMobileMenuOpen && hasSidebar && (
         <>
-          {/* Backdrop */}
           <div
             onClick={() => setIsMobileMenuOpen(false)}
             className="fixed inset-0 bg-black/50 z-40 md:hidden"
           />
-
-          {/* Mobile Sidebar */}
           <div className="fixed top-0 left-0 bottom-0 z-50 md:hidden">
-            <SideBar
+            <Sidebar
+              navItems={navItems}
               isMobile={true}
               onClose={() => setIsMobileMenuOpen(false)}
             />
@@ -87,38 +94,51 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {/* Mobile Menu Button */}
-              <button
-                onClick={() => setIsMobileMenuOpen(true)}
-                className="md:hidden p-2 rounded-lg text-text-primary hover:bg-surface-secondary transition-colors"
-                aria-label="Toggle menu"
-              >
-                <Menu className="w-5 h-5" />
-              </button>
-
-              {/* Mobile Close Button when menu is open */}
-              {isMobileMenuOpen && (
+              {hasSidebar && (
                 <button
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  onClick={() => setIsMobileMenuOpen((v) => !v)}
                   className="md:hidden p-2 rounded-lg text-text-primary hover:bg-surface-secondary transition-colors"
-                  aria-label="Close menu"
+                  aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
                 >
-                  <X className="w-5 h-5" />
+                  {isMobileMenuOpen ? (
+                    <X className="w-5 h-5" />
+                  ) : (
+                    <Menu className="w-5 h-5" />
+                  )}
                 </button>
               )}
 
               <h1 className="text-lg md:text-xl font-semibold text-text-primary">
-                {user?.role === "ADMIN" || user?.role === "SUPER_ADMIN"
-                  ? "Admin Dashboard"
-                  : user?.role === "AGENT"
-                  ? "Staff Dashboard"
-                  : "Staff Dashboard"}
+                {dashboardTitle}
               </h1>
+
+              {/* SSE Live Connection Status Indicator for Staff/Agents */}
+              {role === "AGENT" && (
+                <div
+                  className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
+                    isConnected
+                      ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400"
+                      : "bg-amber-500/10 text-amber-600 border-amber-500/20 dark:text-amber-400"
+                  }`}
+                >
+                  {isConnected ? (
+                    <>
+                      <Wifi size={14} className="animate-pulse" />
+                      Live Updates
+                    </>
+                  ) : (
+                    <>
+                      <WifiOff size={14} />
+                      Connecting...
+                    </>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-3">
               <ThemeToggle />
 
-              {/* User Menu */}
               <div className="flex items-center gap-2 md:gap-3">
                 <div className="text-right hidden sm:block">
                   <p className="text-sm font-semibold text-text-primary">

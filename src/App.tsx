@@ -29,6 +29,7 @@ import PrivacyPolicy from "./Pages/PrivacyPolicy";
 import MustChangePasswordRoute from "./hooks/Change-default-pass";
 import AgentProfile from "./Pages/AgentProfile";
 import StationAgent from "./Pages/Station-agent";
+import Settings from "./Pages/Settings";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -204,7 +205,7 @@ const router = createBrowserRouter(
         path="settings"
         element={
           <Protected>
-            <UnderConstruction />
+            <Settings />
           </Protected>
         }
       />
