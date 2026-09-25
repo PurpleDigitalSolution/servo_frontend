@@ -58,7 +58,7 @@ export const useBadgeStream = (
           const payload = JSON.parse(event.data) as ResponseData;
           console.log(payload);
           if (payload.type === "BADGE_UPDATE") {
-            updateBadge(payload.data);
+            updateBadge(payload.data.badges);
           } else if (payload.type === "NEW_ORDER") {
             incrementBadge("order", payload.data?.value ?? 1);
           }

@@ -25,7 +25,7 @@ export const useBadgeStore = create<BadgeState>((set) => ({
 
   updateBadge: (data) => {
     console.log(data)
-    const list = Array.isArray(data.badges) ? data.badges : [data.badges];
+    const list = Array.isArray(data) ? data : [data];
     console.log(list)
     set((state) => {
       const next = { ...state.badges };

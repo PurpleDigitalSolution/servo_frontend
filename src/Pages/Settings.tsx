@@ -233,8 +233,10 @@ const Settings = () => {
   // Sync store data with local state
   useEffect(() => {
     if (priceSettings) {
-      setSettings(priceSettings);
-      setOriginalSettings(priceSettings);
+      setTimeout(() => {
+        setSettings(priceSettings as unknown as PriceSettings);
+        setOriginalSettings(priceSettings as unknown as PriceSettings);
+      }, 100);
     }
   }, [priceSettings]);
 
@@ -322,7 +324,12 @@ const Settings = () => {
   // Preview calculation
   const preview = useMemo(() => {
     if (!settings) {
-      return { subtotal: SAMPLE_SUBTOTAL, vat: 0, delivery: 0, total: SAMPLE_SUBTOTAL };
+      return {
+        subtotal: SAMPLE_SUBTOTAL,
+        vat: 0,
+        delivery: 0,
+        total: SAMPLE_SUBTOTAL,
+      };
     }
 
     const vatValue = parseFloat(settings.vat.value) || 0;
